@@ -32,7 +32,11 @@ export const auth = betterAuth({
     },
   },
 
-  trustedOrigins: ["http://localhost:3000", "http://192.168.43.64:3000"],
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://192.168.43.64:3000",
+    "https://e-campushub.com",
+  ],
 
   plugins: [
     emailOTP({
