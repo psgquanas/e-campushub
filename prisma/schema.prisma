@@ -1,0 +1,426 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql" 
+}
+
+
+model Faculty {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  departments Department[]
+}
+
+model Department {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique
+  facultyId  Int
+  faculty    Faculty     @relation(fields: [facultyId], references: [id])
+  programmes Programme[]
+}
+
+model Programme {
+  id           Int          @id @default(autoincrement())
+  name         String       @unique
+  departmentId Int
+  department   Department   @relation(fields: [departmentId], references: [id])
+  users        User[]
+  courses      Course[]
+}
+
+model Course {
+  id          Int              @id @default(autoincrement())
+  code        String           // e.g., "CS101"
+  name        String           // e.g., "Introduction to Computing"
+  level       Int              // 100, 200, 300, 400
+  semester    Int              // 1 or 2
+  credits     Int              @default(3)
+  programmeId Int
+  programme   Programme        @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  materials   CourseMaterial[]
+
+  @@unique([code, programmeId])
+  @@index([programmeId, level, semester])
+}
+
+model CourseMaterial {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?
+  type         MaterialType // SLIDES, NOTES, ASSIGNMENT, PAST_QUESTION, etc.
+  fileUrl      String       // Tigris S3 URL
+  fileKey      String       // S3 key for deletion
+  fileSize     Int          // in bytes
+  fileName     String
+  mimeType     String
+  courseId     Int
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  uploadedBy   String
+  uploader     User         @relation("UploadedMaterials", fields: [uploadedBy], references: [id], onDelete: Cascade)
+  isVerified   Boolean      @default(false) // Admin verification
+  verifiedBy   String?
+  verifier     User?        @relation("VerifiedMaterials", fields: [verifiedBy], references: [id])
+  verifiedAt   DateTime?
+  downloads    Int          @default(0)
+  views        Int          @default(0)
+  tags         String[] // ["midterm", "chapter-1", etc.]
+  academicYear String? // "2024/2025"
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  notifications     Notification[]
+
+  @@index([courseId, type])
+  @@index([uploadedBy])
+  @@index([isVerified])
+}
+
+enum MaterialType {
+  SLIDES
+  LECTURE_NOTES
+  ASSIGNMENT
+  PAST_QUESTION
+  TUTORIAL
+  LAB_MANUAL
+  READING_MATERIAL
+  VIDEO
+  OTHER
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  materialId String?
+  material   CourseMaterial? @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  MATERIAL_APPROVED
+  MATERIAL_REJECTED
+  SYSTEM
+}
+
+model User {
+  id                String           @id
+  name              String
+  email             String           @unique
+  emailVerified     Boolean          @default(false)
+  image             String?
+  personalEmail     String?
+  role              UserRole         @default(STUDENT)
+  badgeName         String?          // Custom badge name for admins (e.g., "Developer")
+  programmeId       Int?
+  programme         Programme?       @relation(fields: [programmeId], references: [id])
+  currentLevel      Int? // 100, 200, 300, 400
+  points            Int              @default(0)
+  currentStreak     Int              @default(0)
+  lastLoginDate     DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  sessions          Session[]
+  accounts          Account[]
+  uploadedMaterials CourseMaterial[] @relation("UploadedMaterials")
+  verifiedMaterials CourseMaterial[] @relation("VerifiedMaterials")
+  notifications     Notification[]
+  posts         Post[]        @relation("AuthoredPosts")
+  postLikes     PostLike[]    @relation("PostLikes")
+  postComments  PostComment[] @relation("PostComments")
+  commentLikes  CommentLike[] @relation("CommentLikes")
+  postViews     PostView[]    @relation("PostViews")
+  pointHistory      PointHistory[]
+  confessions              Confession[]           @relation("AuthoredConfessions")
+  confessionLikes          ConfessionLike[]       @relation("ConfessionLikes")
+  confessionComments       ConfessionComment[]    @relation("ConfessionComments")
+  confessionCommentLikes   ConfessionCommentLike[] @relation("ConfessionCommentLikes")
+  confessionViews          ConfessionView[]       @relation("ConfessionViews")
+  confessionReports        ConfessionReport[]     @relation("ConfessionReports")
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+  imageUrls   String[]  // Multiple image attachments (up to 3)
+  authorId    String
+  author      User      @relation("AuthoredPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  isPinned    Boolean   @default(false) // Admins can pin important posts
+  views       Int       @default(0) // Track unique post views
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  likes       PostLike[]
+  comments    PostComment[]
+  postViews   PostView[]
+  
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([isPinned, createdAt])
+  @@index([views])
+  @@map("post")
+}
+
+model PostView {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("PostViews", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
+  @@unique([postId, userId]) // User can only view a post once
+  @@index([postId])
+  @@index([userId])
+  @@map("post_view")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("PostLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
+  @@unique([postId, userId]) // User can only like a post once
+  @@index([postId])
+  @@index([userId])
+  @@map("post_like")
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("PostComments", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  likes     CommentLike[]
+  
+  parentId  String?
+  parent    PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   PostComment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([parentId])
+  @@map("post_comment")
+}
+
+model CommentLike {
+  id        String      @id @default(cuid())
+  commentId String
+  comment   PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation("CommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_like")
+}
+
+
+
+model PointHistory {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points      Int             // Positive or negative
+  action      PointAction
+  description String
+  createdAt   DateTime        @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum PointAction {
+  MATERIAL_UPLOAD
+  MATERIAL_APPROVED
+  MATERIAL_DOWNLOADED
+  POST_CREATED
+  POST_LIKED
+  COMMENT_CREATED
+  COMMENT_LIKED
+  PROFILE_COMPLETED
+  DAILY_LOGIN
+  STREAK_BONUS
+  ADMIN_AWARD
+  PENALTY
+}
+
+model Confession {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+  authorId    String    // For moderation only, not displayed
+  author      User      @relation("AuthoredConfessions", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  isPinned    Boolean   @default(false)
+  views       Int       @default(0)
+  reportCount Int       @default(0)
+  isHidden    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  
+  likes       ConfessionLike[]
+  comments    ConfessionComment[]
+  confessionViews ConfessionView[]
+  reports     ConfessionReport[]
+  
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([isPinned, createdAt])
+  @@map("confession")
+}
+
+model ConfessionLike {
+  id           String     @id @default(cuid())
+  confessionId String
+  confession   Confession @relation(fields: [confessionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation("ConfessionLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  
+  @@unique([confessionId, userId])
+  @@index([confessionId])
+  @@index([userId])
+  @@map("confession_like")
+}
+
+model ConfessionComment {
+  id           String      @id @default(cuid())
+  content      String      @db.Text
+  confessionId String
+  confession   Confession  @relation(fields: [confessionId], references: [id], onDelete: Cascade)
+  authorId     String      // Real author for moderation
+  author       User        @relation("ConfessionComments", fields: [authorId], references: [id], onDelete: Cascade)
+  isAnonymous  Boolean     @default(true) // Users can choose to comment anonymously or not
+  createdAt    DateTime    @default(now())
+  
+  likes        ConfessionCommentLike[]
+  
+  parentId     String?
+  parent       ConfessionComment?  @relation("ConfessionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      ConfessionComment[] @relation("ConfessionCommentReplies")
+  
+  @@index([confessionId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([parentId])
+  @@map("confession_comment")
+}
+
+model ConfessionCommentLike {
+  id        String            @id @default(cuid())
+  commentId String
+  comment   ConfessionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation("ConfessionCommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("confession_comment_like")
+}
+
+model ConfessionView {
+  id           String     @id @default(cuid())
+  confessionId String
+  confession   Confession @relation(fields: [confessionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation("ConfessionViews", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  
+  @@unique([confessionId, userId]) // User can only view a confession once
+  @@index([confessionId])
+  @@index([userId])
+  @@map("confession_view")
+}
+
+model ConfessionReport {
+  id           String     @id @default(cuid())
+  confessionId String
+  confession   Confession @relation(fields: [confessionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation("ConfessionReports", fields: [userId], references: [id], onDelete: Cascade)
+  reason       String     // Harassment, Spam, Inappropriate, Other
+  createdAt    DateTime   @default(now())
+  
+  @@unique([confessionId, userId]) // User can only report each confession once
+  @@index([confessionId])
+  @@index([userId])
+  @@map("confession_report")
+}
