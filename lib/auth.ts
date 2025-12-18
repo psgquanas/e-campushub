@@ -39,9 +39,9 @@ export const auth = betterAuth({
       async sendVerificationOTP({ email, otp }) {
         try {
           await resend.emails.send({
-            from: "SelormOG <onboarding@resend.dev>",
+            from: "no-reply@e-campushub.com",
             to: [email],
-            subject: "E-CampusHub - Sign In Code",
+            subject: "ECampusHub - Sign In Code",
             react: VerifyEmail({ verificationCode: otp }),
           });
         } catch (error) {
