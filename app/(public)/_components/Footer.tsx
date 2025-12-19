@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface FooterItemType {
   id: string | number;
@@ -76,6 +80,32 @@ const footerBlocks = [
 ];
 
 const FooterBlock = () => {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    toast.success("Successfully subscribed!", {
+      description:
+        "Thank you for joining our newsletter. You'll hear from us soon!",
+    });
+
+    console.log("Subscribed email:", email); // Log for now
+    setEmail(""); // Clear the input
+    setIsSubmitting(false);
+  };
+
   return (
     <footer className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300">
       <div className="max-w-7xl mx-auto px-5 sm:px-10 md:px-12 lg:px-5 grid grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-16 py-20">
@@ -102,14 +132,23 @@ const FooterBlock = () => {
           <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             News-letter
           </h1>
-          <form className="w-full max-w-2xl flex flex-col sm:flex-row gap-3">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full max-w-2xl flex flex-col sm:flex-row gap-3"
+          >
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="johndoe@gmail.com"
               className="px-5 py-2.5 rounded-sm outline-none flex-1 bg-gray-200 dark:bg-gray-800"
             />
-            <button className="outline-none w-full py-2.5 px-5 sm:w-max bg-blue-600 text-white rounded-sm flex items-center justify-center cursor-pointer hover:bg-blue-700">
-              Subscribe
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="outline-none w-full py-2.5 px-5 sm:w-max bg-blue-600 text-white rounded-sm flex items-center justify-center cursor-pointer hover:bg-blue-700"
+            >
+              {isSubmitting ? "Subscribing..." : "Subscribe"}
             </button>
           </form>
         </div>

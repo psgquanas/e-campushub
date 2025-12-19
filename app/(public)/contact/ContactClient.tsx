@@ -52,14 +52,36 @@ export default function ContactPage() {
 
   const onSubmit = async (data: ContactFormValues) => {
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log(data);
-    toast.success("Message sent successfully!", {
-      description: "We'll get back to you as soon as possible.",
-    });
-    reset();
-    setIsSubmitting(false);
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success("Message sent successfully!", {
+          description: "We'll get back to you as soon as possible.",
+        });
+        reset();
+      } else {
+        toast.error("Failed to send message", {
+          description: result.error || "Please try again later.",
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("Failed to send message", {
+        description: "Please check your connection and try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

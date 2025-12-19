@@ -42,10 +42,10 @@ export default function VerifyEmail({ verificationCode }: VerifyEmailProps) {
             <Section className="bg-white">
               <Section className="bg-[#252f3d] flex py-5 items-center justify-center">
                 <Img
-                  src={`${baseUrl}/static/aws-logo.png`}
+                  src="/e-campus-logo.svg"
                   width="75"
                   height="45"
-                  alt="AWS's Logo"
+                  alt="E-CampusHub Logo"
                 />
               </Section>
               <Section className="py-[25px] px-[35px]">
@@ -85,7 +85,7 @@ export default function VerifyEmail({ verificationCode }: VerifyEmailProps) {
               <Link
                 href="https://e-campushub.com"
                 target="_blank"
-                className="text-[#2754C5] underline text-[14px]"
+                className="text-[#2754C5] underline text-[12px]"
               >
                 E-CampusHub
               </Link>
@@ -93,7 +93,7 @@ export default function VerifyEmail({ verificationCode }: VerifyEmailProps) {
               <Link
                 href="https://e-campushub.com/privacy"
                 target="_blank"
-                className="text-[#2754C5] underline text-[14px]"
+                className="text-[#2754C5] underline text-[12px]"
               >
                 privacy policy
               </Link>
