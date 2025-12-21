@@ -1,7 +1,8 @@
-import { buttonVariants } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+"use client";
+
 import Link from "next/link";
 import { ReactNode } from "react";
+import Image from "next/image";
 
 export default function OnboardingLayout({
   children,
@@ -12,10 +13,16 @@ export default function OnboardingLayout({
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
       <div className="flex w-full max-w-md flex-col gap-6">
         <Link
-          className="flex items-center gap-2 self-center font-medium"
           href="/"
+          className="text-primary hover:text-primary/90 flex items-center justify-center"
         >
-          SelormLMS.
+          <Image
+            src="/ecampus-logo.svg"
+            alt="Logo"
+            width={100}
+            height={40}
+            className="h-8 w-auto sm:h-11"
+          />
         </Link>
         {children}
       </div>
