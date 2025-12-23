@@ -17,17 +17,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import GradientBackground from "@/app/(public)/_components/Gradient";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface Programme {
   id: number;
@@ -40,6 +54,7 @@ interface OnboardingFormProps {
 
 export default function OnboardingForm({ programmes }: OnboardingFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -67,19 +82,18 @@ export default function OnboardingForm({ programmes }: OnboardingFormProps) {
       if (!response.ok) {
         throw new Error(result.error || "Failed to update programme");
       }
-      toast.success("Sign In Completed! Redirecting to Dashboard...");
-
-      console.log("About to redirect to /dashboard");
-
+      toast.success("Sign In Completed!");
+      setIsLoading(false);
       setTimeout(() => {
-        console.log("Redirecting now...");
         window.location.href = "/dashboard";
       }, 500);
     } catch (error) {
       console.error("Error updating programme:", error);
       toast.error("Failed to update programme. Please try again.");
+      setIsLoading(false);
     }
   }
+
   return (
     <div className="w-full px-4 sm:px-6 md:px-8">
       <GradientBackground />
@@ -107,27 +121,68 @@ export default function OnboardingForm({ programmes }: OnboardingFormProps) {
                   control={form.control}
                   name="programmeId"
                   render={({ field }) => (
-                    <FormItem className="w-full">
+                    <FormItem className="w-full flex flex-col">
                       <FormLabel className="text-sm">
                         Select your programme
                       </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Choose Programme" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {programmes.map((p) => (
-                            <SelectItem key={p.id} value={String(p.id)}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={open}
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? programmes.find(
+                                    (p) => String(p.id) === field.value
+                                  )?.name
+                                : "Search and select programme..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search programme..."
+                              className="h-9"
+                            />
+                            <CommandList>
+                              <CommandEmpty>No programme found.</CommandEmpty>
+                              <CommandGroup>
+                                {programmes.map((programme) => (
+                                  <CommandItem
+                                    key={programme.id}
+                                    value={programme.name}
+                                    onSelect={() => {
+                                      form.setValue(
+                                        "programmeId",
+                                        String(programme.id)
+                                      );
+                                      setOpen(false);
+                                    }}
+                                  >
+                                    {programme.name}
+                                    <Check
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        field.value === String(programme.id)
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -178,9 +233,7 @@ export default function OnboardingForm({ programmes }: OnboardingFormProps) {
                   ) : (
                     <>
                       <Send className="size-4" />
-                      <span className="text-sm sm:text-base">
-                        Complete Sign In
-                      </span>
+                      <span className="text-xs">Complete Sign In</span>
                     </>
                   )}
                 </Button>

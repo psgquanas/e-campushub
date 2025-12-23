@@ -118,7 +118,12 @@ export default function AdminMaterialsClient({
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-lg">{material.title}</CardTitle>
+                  <CardTitle
+                    className="truncate max-w-[210px] md:text-lg md:max-w-[500px]"
+                    title={material.title}
+                  >
+                    {material.title}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     {material.course.code} - {material.course.name}
                   </p>

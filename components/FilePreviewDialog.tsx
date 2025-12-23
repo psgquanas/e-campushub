@@ -48,23 +48,39 @@ export function FilePreviewDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] h-[80vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-4 py-3 border-b shrink-0 flex flex-row items-center justify-between">
+      <DialogContent className="max-w-4xl w-[95vw] h-[85vh] sm:h-[80vh] flex flex-col p-0 gap-0 max-h-[90vh]">
+        <DialogHeader className="px-3 sm:px-4 py-2 sm:py-3 border-b shrink-0">
           <VisuallyHidden>
             <DialogTitle>Preview: {fileName}</DialogTitle>
           </VisuallyHidden>
-          <div className="font-semibold truncate pr-8">{fileName}</div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" asChild title="Open in new tab">
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                <IconExternalLink className="size-4" />
-              </a>
-            </Button>
-            <Button variant="ghost" size="icon" asChild title="Download">
-              <a href={fileUrl} download>
-                <IconDownload className="size-4" />
-              </a>
-            </Button>
+          <div className="flex items-center justify-between gap-2 pr-10">
+            <div className="font-semibold truncate flex-1 min-w-0 text-sm sm:text-base">
+              {fileName}
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 sm:h-10 sm:w-10"
+                asChild
+                title="Open in new tab"
+              >
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                  <IconExternalLink className="size-4" />
+                </a>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 sm:h-10 sm:w-10"
+                asChild
+                title="Download"
+              >
+                <a href={fileUrl} download>
+                  <IconDownload className="size-4" />
+                </a>
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 

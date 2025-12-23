@@ -19,7 +19,7 @@ import { toast } from "sonner";
 
 export function SignInForm() {
   const [googlePending, startGoogleTransition] = useTransition();
-  const [emailPending, startEmailTransition] = useTransition();
+  const [emailPending, setEmailPending] = useState(false);
   const [email, setEmail] = useState("");
 
   const router = useRouter();
@@ -41,54 +41,56 @@ export function SignInForm() {
     });
   }
 
-  function handleEmailSignIn() {
-    startEmailTransition(async () => {
-      try {
-        // Check if email exists
-        const checkRes = await fetch("/api/user/check-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
+  async function handleEmailSignIn() {
+    setEmailPending(true);
+    try {
+      // Check if email exists
+      const checkRes = await fetch("/api/user/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-        if (!checkRes.ok) {
-          if (checkRes.status === 429) {
-            const data = await checkRes.json();
-            toast.error(
-              data.message || "Too many attempts. Please try again later."
-            );
-            return;
-          }
-          toast.error("Failed to verify email");
+      if (!checkRes.ok) {
+        if (checkRes.status === 429) {
+          const data = await checkRes.json();
+          toast.error(
+            data.message || "Too many attempts. Please try again later."
+          );
           return;
         }
-
-        const { exists } = await checkRes.json();
-
-        if (!exists) {
-          toast.error("No account found with this email.");
-          return;
-        }
-
-        await authClient.emailOtp.sendVerificationOtp({
-          email: email,
-          type: "sign-in",
-          fetchOptions: {
-            onSuccess: () => {
-              toast.success("Verification OTP sent to your email");
-              document.cookie =
-                "email_verification_pending=true; path=/; max-age=600";
-              router.push(`/verify-email?email=${email}`);
-            },
-            onError: () => {
-              toast.error("Internal Server Error");
-            },
-          },
-        });
-      } catch (error) {
-        toast.error("An unexpected error occurred");
+        toast.error("Failed to verify email");
+        return;
       }
-    });
+
+      const { exists } = await checkRes.json();
+
+      if (!exists) {
+        toast.error("No account found with this email.");
+        return;
+      }
+
+      await authClient.emailOtp.sendVerificationOtp({
+        email: email,
+        type: "sign-in",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Verification OTP sent to your email");
+            setEmailPending(false);
+            document.cookie =
+              "email_verification_pending=true; path=/; max-age=600";
+            router.push(`/verify-email?email=${email}`);
+          },
+          onError: () => {
+            toast.error("Internal Server Error");
+            setEmailPending(false);
+          },
+        },
+      });
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+      setEmailPending(false);
+    }
   }
 
   return (
@@ -155,7 +157,8 @@ export function SignInForm() {
             )}
           </Button>
           <span className="text-xs text-muted-foreground text-center">
-            First time users <span className="text-white">must</span> sign in
+            First time users{" "}
+            <span className="text-black dark:text-white">must</span> sign in
             with Google.
           </span>
         </div>

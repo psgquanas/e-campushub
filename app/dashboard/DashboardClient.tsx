@@ -54,6 +54,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ProfileImageDialog } from "@/components/ProfileImageDialog";
+import { FilePreviewDialog } from "@/components/FilePreviewDialog";
 
 interface User {
   id: string;
@@ -128,6 +129,7 @@ interface Material {
   course: {
     code: string;
   };
+  fileUrl: string;
 }
 
 interface DashboardClientProps {
@@ -244,6 +246,11 @@ export default function DashboardClient({
     {}
   );
   const [isCommenting, setIsCommenting] = useState<Record<string, boolean>>({});
+
+  const [previewFile, setPreviewFile] = useState<{
+    url: string;
+    name: string;
+  } | null>(null);
 
   // Reply states
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -1396,55 +1403,70 @@ export default function DashboardClient({
           </Card>
 
           {/* Recent Course Materials Widget */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Materials</CardTitle>
-              <Link href="/dashboard/course-materials">
-                <Button variant="ghost" size="sm">
-                  View All
-                  <IconArrowRight className="ml-2 size-4" />
-                </Button>
-              </Link>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentMaterials.length === 0 ? (
-                <div className="text-center py-6 text-sm text-muted-foreground">
-                  <IconFileDescription className="size-8 mx-auto mb-2 opacity-50" />
-                  <p>No materials yet</p>
-                </div>
-              ) : (
-                recentMaterials.map((material) => (
-                  <div
-                    key={material.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
-                  >
-                    <IconFileDescription className="size-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm line-clamp-2">
-                        {material.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge
-                          className={`${getTypeColor(material.type)} text-xs`}
-                        >
-                          {material.type.replace("_", " ")}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {material.course.code}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                        <IconClock className="size-3" />
-                        {formatDistanceToNow(new Date(material.createdAt), {
-                          addSuffix: true,
-                        })}
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Recent Materials</CardTitle>
+                <Link href="/dashboard/course-materials">
+                  <Button variant="ghost" size="sm">
+                    View All
+                    <IconArrowRight className="ml-2 size-4" />
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {recentMaterials.length === 0 ? (
+                  <div className="text-center py-6 text-sm text-muted-foreground">
+                    <IconFileDescription className="size-8 mx-auto mb-2 opacity-50" />
+                    <p>No materials yet</p>
+                  </div>
+                ) : (
+                  recentMaterials.map((material) => (
+                    <div
+                      key={material.id}
+                      onClick={() =>
+                        setPreviewFile({
+                          url: material.fileUrl,
+                          name: material.title,
+                        })
+                      }
+                      className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
+                    >
+                      <IconFileDescription className="size-5 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm line-clamp-2">
+                          {material.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <Badge
+                            className={`${getTypeColor(material.type)} text-xs`}
+                          >
+                            {material.type.replace("_", " ")}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {material.course.code}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                          <IconClock className="size-3" />
+                          {formatDistanceToNow(new Date(material.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <FilePreviewDialog
+              isOpen={!!previewFile}
+              onClose={() => setPreviewFile(null)}
+              fileUrl={previewFile?.url || null}
+              fileName={previewFile?.name || ""}
+            />
+          </>
         </div>
       </div>
 

@@ -925,7 +925,7 @@ export default function AnonymousClient({
             className="flex-1 rounded-md"
           >
             <IconMessage className="size-4" />
-            Post Confession
+            Post Anonymously
           </Button>
           <Select value={sortBy} onValueChange={handleSortChange}>
             <SelectTrigger className="w-full sm:w-48">

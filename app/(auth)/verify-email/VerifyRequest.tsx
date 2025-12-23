@@ -16,14 +16,14 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { Loader2, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function VerifyRequest({ email }: { email: string }) {
   const [otp, setOtp] = useState("");
-  const [emailPending, startEmailTransition] = useTransition();
-  const [resendPending, startResendTransition] = useTransition();
-  const [timeLeft, setTimeLeft] = useState(30); // Initial countdown of 30 seconds
+  const [resendPending, setResendPending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
   const router = useRouter();
   const isOTPCompleted = otp.length === 6;
 
@@ -37,40 +37,42 @@ export default function VerifyRequest({ email }: { email: string }) {
     return () => clearInterval(intervalId);
   }, [timeLeft]);
 
-  function verifyOtp() {
-    startEmailTransition(async () => {
-      await authClient.signIn.emailOtp({
-        email: email,
-        otp: otp,
-        fetchOptions: {
-          onSuccess: () => {
-            toast.success("Email Verified Successfully");
-            router.push("/dashboard");
-          },
-          onError: () => {
-            toast.error("Invalid OTP. Please try again.");
-          },
+  async function verifyOtp() {
+    setIsVerifying(true);
+    await authClient.signIn.emailOtp({
+      email: email,
+      otp: otp,
+      fetchOptions: {
+        onSuccess: () => {
+          toast.success("Email Verified Successfully");
+          setIsVerifying(false);
+          router.push("/dashboard");
         },
-      });
+        onError: () => {
+          toast.error("Invalid OTP. Please try again.");
+          setIsVerifying(false);
+        },
+      },
     });
   }
 
-  function resendOtp() {
-    startResendTransition(async () => {
-      await authClient.emailOtp.sendVerificationOtp({
-        email: email,
-        type: "sign-in",
-        fetchOptions: {
-          onSuccess: () => {
-            toast.success("New verification code sent!");
-            setOtp(""); // Clear current OTP
-            setTimeLeft(60); // Reset countdown to 60 seconds
-          },
-          onError: () => {
-            toast.error("Failed to resend code. Please try again.");
-          },
+  async function resendOtp() {
+    setResendPending(true);
+    await authClient.emailOtp.sendVerificationOtp({
+      email: email,
+      type: "sign-in",
+      fetchOptions: {
+        onSuccess: () => {
+          toast.success("New verification code sent!");
+          setResendPending(false);
+          setOtp(""); // Clear current OTP
+          setTimeLeft(60); // Reset countdown to 60 seconds
         },
-      });
+        onError: () => {
+          toast.error("Failed to resend code. Please try again.");
+          setResendPending(false);
+        },
+      },
     });
   }
 
@@ -84,8 +86,8 @@ export default function VerifyRequest({ email }: { email: string }) {
           Check Your Email
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm px-2 sm:px-4">
-          We have sent a verification email code to your inbox. Please check
-          your email and paste the code below
+          A verification email code has been sent to your inbox. Please check
+          your email
         </CardDescription>
       </CardHeader>
 
@@ -118,10 +120,10 @@ export default function VerifyRequest({ email }: { email: string }) {
 
         <Button
           onClick={verifyOtp}
-          disabled={emailPending || !isOTPCompleted}
+          disabled={isVerifying || !isOTPCompleted}
           className="w-full h-10 sm:h-11"
         >
-          {emailPending ? (
+          {isVerifying ? (
             <>
               <Loader2 className="size-4 animate-spin" />
               <span className="ml-2">Verifying...</span>
@@ -153,12 +155,6 @@ export default function VerifyRequest({ email }: { email: string }) {
               </>
             )}
           </button>
-        </div>
-
-        <div className="pt-2 border-t">
-          <p className="text-xs text-muted-foreground text-center">
-            Check your spam folder if you don&apos;t see the email.
-          </p>
         </div>
       </CardContent>
     </Card>

@@ -143,36 +143,65 @@ export default function UploadMaterialForm({
     setUploadProgress(0);
 
     try {
-      // Step 1: Upload file directly through API
-      setUploadProgress(10);
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const uploadResponse = await fetch("/api/materials/upload-direct", {
+      // Step 1: Get presigned URL
+      setUploadProgress(5);
+      const presignedResponse = await fetch("/api/materials/upload/presigned", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
       });
 
-      if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
-        throw new Error(error.error || "Failed to upload file");
+      if (!presignedResponse.ok) {
+        const error = await presignedResponse.json();
+        throw new Error(error.error || "Failed to get upload authorization");
       }
 
-      const { key, fileUrl, fileName, fileSize, mimeType } =
-        await uploadResponse.json();
-      setUploadProgress(70);
+      const { presignedUrl, key, publicUrl } = await presignedResponse.json();
+      setUploadProgress(10);
 
-      // Step 2: Create material record in database
+      // Step 2: Upload to S3 using XMLHttpRequest for progress
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", presignedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete =
+              Math.round((event.loaded / event.total) * 80) + 10;
+            setUploadProgress(percentComplete);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject(new Error("Failed to upload to storage"));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
+      });
+
+      setUploadProgress(90);
+
+      // Step 3: Create material record in database
       const createResponse = await fetch("/api/materials/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...values,
-          fileUrl,
+          fileUrl: publicUrl,
           fileKey: key,
-          fileName,
-          fileSize,
-          mimeType,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
           tags: values.tags ? values.tags.split(",").map((t) => t.trim()) : [],
         }),
       });
@@ -253,7 +282,12 @@ export default function UploadMaterialForm({
                   <div className="flex items-center gap-3">
                     <IconFile className="size-8 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{file.name}</p>
+                      <p
+                        className="font-medium md:max-w-none truncate max-w-[210px]"
+                        title={file.name}
+                      >
+                        {file.name}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {formatBytes(file.size)}
                       </p>

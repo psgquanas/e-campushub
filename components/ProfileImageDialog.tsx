@@ -8,6 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import Image from "next/image";
 
 interface ProfileImageDialogProps {
   image: string | null;
@@ -36,11 +37,16 @@ export function ProfileImageDialog({
             <DialogTitle>Profile Picture of {name}</DialogTitle>
           </VisuallyHidden>
         </DialogHeader>
-        <div className="relative w-full aspect-square md:aspect-auto md:h-[500px] bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center p-4">
-          <img
+        <div className="relative w-full aspect-square max-w-[400px] mx-auto bg-black/50 backdrop-blur-sm rounded-lg overflow-hidden">
+          <Image
             src={image}
             alt={`Profile picture of ${name}`}
-            className="max-w-full max-h-full object-contain rounded-md"
+            width={400}
+            height={400}
+            quality={90}
+            className="w-full h-full object-cover"
+            priority
+            sizes="(max-width: 768px) 100vw, 400px"
           />
         </div>
       </DialogContent>

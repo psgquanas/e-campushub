@@ -154,11 +154,18 @@ export default async function DashboardIndexPage() {
     take: 4,
     orderBy: { createdAt: "desc" },
     where: {
+      isVerified: true,
       course: {
         level: currentUser.currentLevel || undefined,
       },
     },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      fileUrl: true,
+      isVerified: true,
+      createdAt: true,
       course: {
         select: {
           code: true,

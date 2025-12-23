@@ -56,6 +56,10 @@ export default async function HostelListingsPage() {
             <p className="text-xs text-muted-foreground mt-8">
               Stay tuned for updates!
             </p>
+
+            <p className="text-xs text-muted-foreground mt-8">
+              Email: info@e-campushub.com
+            </p>
           </div>
         </div>
       </div>
