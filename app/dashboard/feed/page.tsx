@@ -4,6 +4,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin";
 import CampusFeedClient from "./CampusFeedClient";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Campus Updates",
+  description: "Campus Feed - Dashboard",
+};
 
 export default async function CampusFeedPage({
   searchParams,

@@ -4,6 +4,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin";
 import AdminMaterialsClient from "./AdminMaterialsClient";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Materials Review",
+  description: "Materials Review",
+};
 
 export default async function AdminMaterialsPage() {
   const session = await auth.api.getSession({ headers: await headers() });

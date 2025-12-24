@@ -4,6 +4,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin";
 import AnonymousClient from "./AnonymousClient";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Anonymous",
+  description: "Anonymous Confessions",
+};
 
 export default async function AnonymousPage() {
   const session = await auth.api.getSession({ headers: await headers() });

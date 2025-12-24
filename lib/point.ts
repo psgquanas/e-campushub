@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { PointAction } from "@/lib/generated/prisma/client";
+import { withRetry } from "@/lib/retry";
 
 // Point values for different actions
 export const POINT_VALUES = {
@@ -125,74 +126,119 @@ export async function getLeaderboard({
   });
 }
 
+// Simple in-memory set to prevent multiple concurrent calls for the same user in the same instance
+const activeLoginAwards = new Set<string>();
+
 export async function checkAndAwardDailyLogin(userId: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const user = await prisma.user.findUnique({
+  // 1. Quick in-memory check to prevent parallel fires in the same process
+  if (activeLoginAwards.has(userId)) return false;
+
+  // 2. Perform a read-only check OUTSIDE the transaction.
+  // This avoids starting a transaction for 99% of requests.
+  const userCheck = await prisma.user.findUnique({
     where: { id: userId },
-    select: { lastLoginDate: true, currentStreak: true },
+    select: { lastLoginDate: true },
   });
 
-  if (!user) return false;
-
-  const lastLogin = user.lastLoginDate;
-
-  // If already logged in today, do nothing
-  if (lastLogin && lastLogin >= today) {
+  if (userCheck?.lastLoginDate && userCheck.lastLoginDate >= today) {
     return false;
   }
 
-  // Calculate streak
-  let newStreak = 1;
-  if (lastLogin) {
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+  activeLoginAwards.add(userId);
 
-    // Check if last login was yesterday (ignoring time)
-    const lastLoginDate = new Date(lastLogin);
-    lastLoginDate.setHours(0, 0, 0, 0);
+  try {
+    // Use retry logic with exponential backoff for the entire operation
+    return await withRetry(
+      async () => {
+        // Wrap only the writing queries in a transaction
+        return await prisma.$transaction(
+          async (tx) => {
+            // Re-verify inside transaction to prevent race conditions
+            const user = await tx.user.findUnique({
+              where: { id: userId },
+              select: { lastLoginDate: true, currentStreak: true },
+            });
 
-    if (lastLoginDate.getTime() === yesterday.getTime()) {
-      newStreak = user.currentStreak + 1;
-    }
-  }
+            if (!user) return false;
 
-  // Update user
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      lastLoginDate: new Date(),
-      currentStreak: newStreak,
-      points: {
-        increment:
-          POINT_VALUES.DAILY_LOGIN +
-          (newStreak > 1 ? POINT_VALUES.STREAK_BONUS : 0),
+            const lastLogin = user.lastLoginDate;
+
+            // Final check inside the lock
+            if (lastLogin && lastLogin >= today) {
+              return false;
+            }
+
+            // Calculate streak
+            let newStreak = 1;
+            if (lastLogin) {
+              const yesterday = new Date(today);
+              yesterday.setDate(yesterday.getDate() - 1);
+
+              const lastLoginDate = new Date(lastLogin);
+              lastLoginDate.setHours(0, 0, 0, 0);
+
+              if (lastLoginDate.getTime() === yesterday.getTime()) {
+                newStreak = user.currentStreak + 1;
+              }
+            }
+
+            const totalPoints =
+              POINT_VALUES.DAILY_LOGIN +
+              (newStreak > 1 ? POINT_VALUES.STREAK_BONUS : 0);
+
+            // Update user
+            await tx.user.update({
+              where: { id: userId },
+              data: {
+                lastLoginDate: new Date(),
+                currentStreak: newStreak,
+                points: {
+                  increment: totalPoints,
+                },
+              },
+            });
+
+            // Create point history records
+            const pointHistoryRecords = [
+              {
+                userId,
+                action: "DAILY_LOGIN" as PointAction,
+                points: POINT_VALUES.DAILY_LOGIN,
+                description: "Daily login bonus",
+              },
+            ];
+
+            if (newStreak > 1) {
+              pointHistoryRecords.push({
+                userId,
+                action: "STREAK_BONUS" as PointAction,
+                points: POINT_VALUES.STREAK_BONUS,
+                description: `Login streak bonus (${newStreak} days)`,
+              });
+            }
+
+            await tx.pointHistory.createMany({
+              data: pointHistoryRecords,
+            });
+
+            return true;
+          },
+          {
+            timeout: 20000, // 20 second timeout for transaction
+          }
+        );
       },
-    },
-  });
-
-  // Record daily login points
-  await prisma.pointHistory.create({
-    data: {
-      userId,
-      action: "DAILY_LOGIN",
-      points: POINT_VALUES.DAILY_LOGIN,
-      description: "Daily login bonus",
-    },
-  });
-
-  // Record streak bonus if applicable
-  if (newStreak > 1) {
-    await prisma.pointHistory.create({
-      data: {
-        userId,
-        action: "STREAK_BONUS",
-        points: POINT_VALUES.STREAK_BONUS,
-        description: `Login streak bonus (${newStreak} days)`,
-      },
-    });
+      {
+        maxAttempts: 3,
+        initialDelayMs: 200,
+        maxDelayMs: 2000,
+      }
+    );
+  } finally {
+    // Always remove from active set so they can earn points again tomorrow
+    activeLoginAwards.delete(userId);
   }
-
-  return true;
 }

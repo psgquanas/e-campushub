@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import aj, { slidingWindow } from "@/lib/arcjet";
+import { awardPoints } from "@/lib/point";
 
 export async function POST(
   request: Request,
@@ -62,11 +63,24 @@ export async function POST(
       });
     } else {
       console.log("[COMMENT_LIKE] Creating like");
-      await prisma.commentLike.create({
+      const like = await prisma.commentLike.create({
         data: {
           commentId,
           userId,
         },
+        include: {
+          comment: {
+            select: {
+              authorId: true,
+            },
+          },
+        },
+      });
+
+      // Award points to the comment author
+      await awardPoints({
+        userId: like.comment.authorId,
+        action: "COMMENT_LIKED",
       });
     }
 

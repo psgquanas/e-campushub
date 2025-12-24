@@ -1479,10 +1479,7 @@ export default function DashboardClient({
           </DialogHeader>
           <div
             className="overflow-y-auto px-4 py-2"
-            style={{
-              maxHeight:
-                (selectedPost?.likes.length || 0) > 5 ? "400px" : "auto",
-            }}
+            style={{ maxHeight: "400px" }}
           >
             {selectedPost?.likes.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">

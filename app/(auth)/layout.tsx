@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import GradientBackground from "../(public)/_components/Gradient";
 import Image from "next/image";
+import SnowfallEffect from "@/components/snowfall-effect";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const pathName = usePathname();
@@ -40,6 +41,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               className="h-8 w-auto sm:h-11"
             />
           </Link>
+          <SnowfallEffect />
           {children}
 
           <div className="text-balance text-center text-xs text-muted-foreground px-2 sm:px-0">

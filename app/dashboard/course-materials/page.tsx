@@ -1,10 +1,14 @@
-// app/dashboard/course-materials/page.tsx
-import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import CourseMaterialsClient from "./CourseMaterials";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Course Materials",
+  description: "COurse Materials",
+};
 
 export default async function CourseMaterialsPage({
   searchParams,

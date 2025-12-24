@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 import aj, { slidingWindow } from "@/lib/arcjet";
+import { awardPoints } from "@/lib/point";
 
 export async function POST(
   req: NextRequest,
@@ -69,12 +70,26 @@ export async function POST(
       return NextResponse.json({ success: true, liked: false });
     } else {
       // Like
-      await prisma.postLike.create({
+      const like = await prisma.postLike.create({
         data: {
           postId,
           userId: session.user.id,
         },
+        include: {
+          post: {
+            select: {
+              authorId: true,
+            },
+          },
+        },
       });
+
+      // Award points to the post author (not the liker)
+      await awardPoints({
+        userId: like.post.authorId,
+        action: "POST_LIKED",
+      });
+
       return NextResponse.json({ success: true, liked: true });
     }
   } catch (error) {

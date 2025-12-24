@@ -3,6 +3,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import DashboardClient from "./DashboardClient";
 import { prisma } from "@/lib/db";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard - E-CampusHub",
+  description: "A platform to make campus life easier for students",
+};
 
 export default async function DashboardIndexPage() {
   const session = await auth.api.getSession({

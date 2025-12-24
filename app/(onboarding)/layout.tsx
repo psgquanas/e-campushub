@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import Image from "next/image";
+import SnowfallEffect from "@/components/snowfall-effect";
 
 export default function OnboardingLayout({
   children,
@@ -24,6 +25,7 @@ export default function OnboardingLayout({
             className="h-8 w-auto sm:h-11"
           />
         </Link>
+        <SnowfallEffect />
         {children}
       </div>
     </div>

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { ensureAdmin, isAdmin } from "@/lib/admin";
 import aj, { slidingWindow } from "@/lib/arcjet";
 import { validatePostCreate } from "@/lib/validation";
+import { awardPoints } from "@/lib/point";
 
 export async function POST(req: NextRequest) {
   const arcjet = aj.withRule(
@@ -73,6 +74,12 @@ export async function POST(req: NextRequest) {
           },
         },
       },
+    });
+
+    // Award points for creating a post
+    await awardPoints({
+      userId: session.user.id,
+      action: "POST_CREATED",
     });
 
     return NextResponse.json({ success: true, post });

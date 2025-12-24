@@ -13,6 +13,7 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { Metadata } from "next";
+import SnowfallEffect from "@/components/snowfall-effect";
 
 export const metadata: Metadata = {
   title: "Features",
@@ -74,6 +75,7 @@ export default function FeaturesPage() {
   return (
     <div className="relative">
       <Navbar />
+      <SnowfallEffect />
       <div className="relative overflow-hidden min-h-screen">
         <GradientBackground />
         <div className="container mx-auto px-4 py-20 relative z-10">

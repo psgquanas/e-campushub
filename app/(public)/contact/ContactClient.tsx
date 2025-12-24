@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { useState } from "react";
+import SnowfallEffect from "@/components/snowfall-effect";
 
 const contactSchema = z.object({
   firstName: z
@@ -87,6 +88,7 @@ export default function ContactPage() {
   return (
     <div className="relative">
       <Navbar />
+      <SnowfallEffect />
       <div className="relative overflow-hidden min-h-screen">
         <GradientBackground />
         <div className="container mx-auto px-4 py-20 relative z-10">

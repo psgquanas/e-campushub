@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const arcjet = aj.withRule(
     slidingWindow({
       mode: "LIVE",
-      interval: "30m",
+      interval: "60m",
       max: 5,
     })
   );

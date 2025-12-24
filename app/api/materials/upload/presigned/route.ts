@@ -5,6 +5,7 @@ import { s3Client } from "@/lib/s3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "@/lib/env";
+import { awardPoints } from "@/lib/point";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_FILE_TYPES = [
@@ -72,6 +73,11 @@ export async function POST(req: NextRequest) {
 
     // Public URL for accessing the file after upload
     const publicUrl = `https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_FILES}.fly.storage.tigris.dev/${key}`;
+
+    await awardPoints({
+      userId: session.user.id,
+      action: "MATERIAL_UPLOAD",
+    });
 
     return NextResponse.json({
       presignedUrl,

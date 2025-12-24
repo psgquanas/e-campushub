@@ -1,8 +1,13 @@
-// app/dashboard/hostel-listings/page.tsx
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { IconBuildingCommunity, IconClock } from "@tabler/icons-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Hostel Listings",
+  description: "Dashboard - Hostel Listings",
+};
 
 export default async function HostelListingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });

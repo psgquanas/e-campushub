@@ -4,6 +4,12 @@ import { redirect } from "next/navigation";
 import { getLeaderboard, getUserRank } from "@/lib/point";
 import { prisma } from "@/lib/db";
 import LeaderboardClient from "./LeaderboardClient";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Leaderboard - Dashboard",
+  description: "Leaderboard",
+};
 
 export default async function LeaderboardPage({
   searchParams,

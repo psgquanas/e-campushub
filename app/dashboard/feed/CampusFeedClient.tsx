@@ -1957,7 +1957,7 @@ export default function CampusFeedClient({
           </DialogHeader>
           <div
             className="overflow-y-auto px-4 py-2"
-            style={{ maxHeight: "calc(70vh - 120px)" }}
+            style={{ maxHeight: "400px" }}
           >
             {selectedPost?.likes.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">

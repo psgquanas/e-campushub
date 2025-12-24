@@ -49,6 +49,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <GoogleAnalytics />
+
           {children}
           <SpeedInsights />
           <Analytics />

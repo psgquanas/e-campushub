@@ -13,6 +13,7 @@ import {
   IconShield,
 } from "@tabler/icons-react";
 import { Metadata } from "next";
+import SnowfallEffect from "@/components/snowfall-effect";
 
 export const metadata: Metadata = {
   title: "About E-CampusHub",
@@ -23,6 +24,7 @@ export default function AboutPage() {
   return (
     <div className="relative">
       <Navbar />
+      <SnowfallEffect />
       <div className="relative overflow-hidden min-h-screen">
         <GradientBackground />
         <div className="container mx-auto px-4 py-20 relative z-10">

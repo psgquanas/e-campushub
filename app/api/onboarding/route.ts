@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { awardPoints } from "@/lib/point";
 
 export async function POST(req: Request) {
   try {
@@ -28,6 +29,12 @@ export async function POST(req: Request) {
         currentLevel: Number(currentLevel),
       },
       include: { programme: true },
+    });
+
+    // Award points for completing profile
+    await awardPoints({
+      userId,
+      action: "PROFILE_COMPLETED",
     });
 
     return NextResponse.json({ user: updatedUser }, { status: 200 });
