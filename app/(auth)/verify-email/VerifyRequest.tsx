@@ -44,7 +44,7 @@ export default function VerifyRequest({ email }: { email: string }) {
       otp: otp,
       fetchOptions: {
         onSuccess: () => {
-          toast.success("Email Verified Successfully");
+          toast.success("Signing In...");
           setIsVerifying(false);
           router.push("/dashboard");
         },

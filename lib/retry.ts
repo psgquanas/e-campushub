@@ -40,6 +40,9 @@ function isRetryableError(error: unknown): boolean {
     "network error",
     "too many connections",
     "connection pool timeout",
+    "expired transaction",
+    "transaction timeout",
+    "transaction api error",
   ];
 
   return retryablePatterns.some((pattern) => errorMessage.includes(pattern));

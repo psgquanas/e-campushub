@@ -124,12 +124,31 @@ export async function getLeaderboard({
   });
 }
 
+// Simple in-memory set to prevent multiple concurrent calls for the same user in the same instance
+const activeLoginAwards = new Set<string>();
+
 export async function checkAndAwardDailyLogin(userId: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD format
 
+  // 1. Quick in-memory check to prevent parallel fires in the same process
+  if (activeLoginAwards.has(userId)) return false;
+
   try {
+    // 2. Perform a read-only check OUTSIDE the transaction.
+    // This avoids starting a transaction for 99% of requests.
+    const userCheck = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastLoginDate: true },
+    });
+
+    if (userCheck?.lastLoginDate && userCheck.lastLoginDate >= today) {
+      return false;
+    }
+
+    activeLoginAwards.add(userId);
+
     return await withRetry(
       async () => {
         return await prisma.$transaction(
@@ -230,5 +249,8 @@ export async function checkAndAwardDailyLogin(userId: string) {
     }
     console.error("Failed to award daily login:", error);
     throw error;
+  } finally {
+    // Always remove from active set
+    activeLoginAwards.delete(userId);
   }
 }
