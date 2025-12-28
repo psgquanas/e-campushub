@@ -82,7 +82,7 @@ export function AppSidebar({ isAdmin = false, ...props }: AppSidebarProps) {
     ...(isAdmin
       ? [
           {
-            title: "Approvals",
+            title: "Reviews",
             url: "/dashboard/admin/materials",
             icon: IconBellCheck,
           },

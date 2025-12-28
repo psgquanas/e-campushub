@@ -97,6 +97,30 @@ export default function CourseMaterialsClient({
     { value: "LAB_MANUAL", label: "Lab Manuals" },
   ];
 
+  const trackView = async (materialId: string) => {
+    try {
+      const response = await fetch(`/api/materials/${materialId}/view`, {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const { views } = await response.json();
+        // The courses state is fixed from props, but normalized for filtering.
+        // We don't have a local 'setCourses' because it's passed from server,
+        // but we can update the 'previewFile' or handle it if we had a local posts-like state.
+        // Actually, let's just make sure the previewFile we have gets updated if needed,
+        // but the main goal is hitting the API.
+      }
+    } catch (error) {
+      console.error("Failed to track material view:", error);
+    }
+  };
+
+  const handlePreview = (material: Material) => {
+    setPreviewFile(material);
+    trackView(material.id);
+  };
+
   return (
     <div className="flex h-full flex-col gap-4 sm:gap-6 p-4 sm:p-6">
       {/* Header */}
@@ -186,7 +210,7 @@ export default function CourseMaterialsClient({
               <MaterialCard
                 key={material.id}
                 material={material}
-                onPreview={setPreviewFile}
+                onPreview={handlePreview}
               />
             ))}
           </div>
@@ -198,7 +222,7 @@ export default function CourseMaterialsClient({
               <MaterialListItem
                 key={material.id}
                 material={material}
-                onPreview={setPreviewFile}
+                onPreview={handlePreview}
               />
             ))}
           </div>

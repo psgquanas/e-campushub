@@ -72,6 +72,7 @@ model CourseMaterial {
   verifiedAt   DateTime?
   downloads    Int          @default(0)
   views        Int          @default(0)
+  materialViews CourseMaterialView[]
   tags         String[] // ["midterm", "chapter-1", etc.]
   academicYear String? // "2024/2025"
   createdAt    DateTime     @default(now())
@@ -81,6 +82,20 @@ model CourseMaterial {
   @@index([courseId, type])
   @@index([uploadedBy])
   @@index([isVerified])
+}
+
+model CourseMaterialView {
+  id         String         @id @default(cuid())
+  materialId String
+  material   CourseMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation("MaterialViews", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@unique([materialId, userId]) // User can only view a material once (for counting purposes)
+  @@index([materialId])
+  @@index([userId])
+  @@map("course_material_view")
 }
 
 enum MaterialType {
@@ -156,6 +171,7 @@ model User {
   confessionCommentLikes   ConfessionCommentLike[] @relation("ConfessionCommentLikes")
   confessionViews          ConfessionView[]       @relation("ConfessionViews")
   confessionReports        ConfessionReport[]     @relation("ConfessionReports")
+  materialViews            CourseMaterialView[]   @relation("MaterialViews")
 
   @@map("user")
 }
@@ -295,16 +311,19 @@ model CommentLike {
 
 
 model PointHistory {
-  id          String          @id @default(cuid())
+  id          String      @id @default(cuid())
   userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  points      Int             // Positive or negative
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points      Int         // Positive or negative
   action      PointAction
   description String
-  createdAt   DateTime        @default(now())
+  loginDate   String?     // YYYY-MM-DD format, only for DAILY_LOGIN and STREAK_BONUS
+  createdAt   DateTime    @default(now())
 
   @@index([userId])
   @@index([createdAt])
+  @@index([userId, action, createdAt])
+  @@unique([userId, loginDate], map: "unique_user_daily_login")
 }
 
 enum PointAction {

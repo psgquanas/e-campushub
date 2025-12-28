@@ -30,12 +30,12 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
-  // Logged in but not onboarded → force onboarding
+  // Logged in but not onboarded, send user to onboarding flow
   if (user && !programmeId && !isOnboardingRoute) {
     return NextResponse.redirect(new URL("/onboarding", req.url));
   }
 
-  // Onboarded but accessing onboarding → redirect to dashboard
+  // Onboarded but accessing onboarding we redirect user to dashboard
   if (user && programmeId && isOnboardingRoute) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }

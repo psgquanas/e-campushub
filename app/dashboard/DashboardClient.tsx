@@ -1156,6 +1156,16 @@ export default function DashboardClient({
     }
   };
 
+  const trackMaterialView = async (materialId: string) => {
+    try {
+      await fetch(`/api/materials/${materialId}/view`, {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Failed to track material view:", error);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 p-1 sm:p-6">
       {/* Header Section */}
@@ -1424,12 +1434,13 @@ export default function DashboardClient({
                   recentMaterials.map((material) => (
                     <div
                       key={material.id}
-                      onClick={() =>
+                      onClick={() => {
                         setPreviewFile({
                           url: material.fileUrl,
                           name: material.title,
-                        })
-                      }
+                        });
+                        trackMaterialView(material.id);
+                      }}
                       className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
                     >
                       <IconFileDescription className="size-5 text-muted-foreground shrink-0 mt-0.5" />
