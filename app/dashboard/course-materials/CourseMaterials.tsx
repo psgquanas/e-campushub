@@ -278,7 +278,7 @@ function MaterialCard({
             <Badge className={`${getTypeColor(material.type)} mb-2`}>
               {material.type.replace("_", " ")}
             </Badge>
-            <CardTitle className="text-base line-clamp-2">
+            <CardTitle className="text-base line-clamp-1">
               {material.title}
             </CardTitle>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-1">
@@ -288,11 +288,13 @@ function MaterialCard({
         </div>
       </CardHeader>
       <CardContent>
-        {material.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-            {material.description}
-          </p>
-        )}
+        <div className="min-h-10 mb-4">
+          {material.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {material.description}
+            </p>
+          )}
+        </div>
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
@@ -319,7 +321,7 @@ function MaterialCard({
             View
           </Button>
           <Button asChild variant="outline" size="sm">
-            <a href={`/api/materials/${material.id}/download`}>
+            <a href={material.fileUrl}>
               <IconDownload className="size-4" />
             </a>
           </Button>

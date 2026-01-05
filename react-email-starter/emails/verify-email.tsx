@@ -40,12 +40,18 @@ export default function VerifyEmail({ verificationCode }: VerifyEmailProps) {
           <Preview>Sign In Email Verification</Preview>
           <Container className="p-5 mx-auto bg-[#eee]">
             <Section className="bg-white">
-              <Section className="bg-[#252f3d] flex py-5 items-center justify-center">
+              <Section className="bg-[#252f3d] py-5">
                 <Img
-                  src={`${baseUrl}/static/ecampus-logo.svg`}
-                  width={270}
-                  height={50}
+                  src="https://e-campushub.t3.storage.dev/ecampus-logo.png"
+                  width="270"
+                  height="50"
                   alt="E-CampusHub Logo"
+                  style={{
+                    display: "block",
+                    margin: "0 auto",
+                    maxWidth: "100%",
+                    height: "auto",
+                  }}
                 />
               </Section>
               <Section className="py-[25px] px-[35px]">

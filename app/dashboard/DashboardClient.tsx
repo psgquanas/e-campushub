@@ -1445,7 +1445,7 @@ export default function DashboardClient({
                     >
                       <IconFileDescription className="size-5 text-muted-foreground shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm line-clamp-2">
+                        <p className="font-medium text-sm line-clamp-1">
                           {material.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
