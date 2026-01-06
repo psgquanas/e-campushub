@@ -136,73 +136,81 @@ export async function checkAndAwardDailyLogin(userId: string) {
   if (activeLoginAwards.has(userId)) return false;
 
   try {
-    // 2. Perform a read-only check OUTSIDE the transaction.
-    // This avoids starting a transaction for 99% of requests.
-    const userCheck = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { lastLoginDate: true },
+    // 2. Check if user already has a login record for today (OUTSIDE transaction)
+    const existingLoginToday = await prisma.pointHistory.findFirst({
+      where: {
+        userId,
+        action: "DAILY_LOGIN",
+        loginDate: todayStr,
+      },
+      select: { id: true },
     });
 
-    if (userCheck?.lastLoginDate && userCheck.lastLoginDate >= today) {
-      return false;
+    if (existingLoginToday) {
+      return false; // Already logged in today
     }
 
     activeLoginAwards.add(userId);
 
+    // 3. Get user data for streak calculation (OUTSIDE transaction)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastLoginDate: true, currentStreak: true },
+    });
+
+    if (!user) {
+      return false;
+    }
+
+    const lastLogin = user.lastLoginDate;
+
+    // Calculate streak
+    let newStreak = 1;
+    let streakBonus = 0;
+
+    if (lastLogin) {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const lastLoginDate = new Date(lastLogin);
+      lastLoginDate.setHours(0, 0, 0, 0);
+
+      if (lastLoginDate.getTime() === yesterday.getTime()) {
+        newStreak = user.currentStreak + 1;
+        streakBonus = POINT_VALUES.STREAK_BONUS;
+      }
+    }
+
+    const totalPoints = POINT_VALUES.DAILY_LOGIN + streakBonus;
+
+    // 4. Now do the transaction with all data ready (should be FAST)
     return await withRetry(
       async () => {
         return await prisma.$transaction(
           async (tx) => {
-            // Try to create DAILY_LOGIN record - unique constraint prevents duplicates
-            try {
+            // Create daily login record
+            await tx.pointHistory.create({
+              data: {
+                userId,
+                action: "DAILY_LOGIN",
+                points: POINT_VALUES.DAILY_LOGIN,
+                description: "Daily login bonus",
+                loginDate: todayStr,
+              },
+            });
+
+            // Create streak bonus if applicable
+            if (newStreak > 1) {
               await tx.pointHistory.create({
                 data: {
                   userId,
-                  action: "DAILY_LOGIN",
-                  points: POINT_VALUES.DAILY_LOGIN,
-                  description: "Daily login bonus",
-                  loginDate: todayStr, // Unique constraint on (userId, loginDate)
+                  action: "STREAK_BONUS",
+                  points: POINT_VALUES.STREAK_BONUS,
+                  description: `Login streak bonus (${newStreak} days)`,
+                  loginDate: todayStr,
                 },
               });
-            } catch (error: any) {
-              // P2002 = unique constraint violation (already logged in today)
-              if (error.code === "P2002") {
-                return false;
-              }
-              throw error;
             }
-
-            // If we got here, this is the first login today
-            const user = await tx.user.findUnique({
-              where: { id: userId },
-              select: { lastLoginDate: true, currentStreak: true },
-            });
-
-            if (!user) {
-              // Rollback by throwing error
-              throw new Error("User not found");
-            }
-
-            const lastLogin = user.lastLoginDate;
-
-            // Calculate streak
-            let newStreak = 1;
-            let streakBonus = 0;
-
-            if (lastLogin) {
-              const yesterday = new Date(today);
-              yesterday.setDate(yesterday.getDate() - 1);
-
-              const lastLoginDate = new Date(lastLogin);
-              lastLoginDate.setHours(0, 0, 0, 0);
-
-              if (lastLoginDate.getTime() === yesterday.getTime()) {
-                newStreak = user.currentStreak + 1;
-                streakBonus = POINT_VALUES.STREAK_BONUS;
-              }
-            }
-
-            const totalPoints = POINT_VALUES.DAILY_LOGIN + streakBonus;
 
             // Update user
             await tx.user.update({
@@ -216,30 +224,17 @@ export async function checkAndAwardDailyLogin(userId: string) {
               },
             });
 
-            // Add streak bonus if applicable
-            if (newStreak > 1) {
-              await tx.pointHistory.create({
-                data: {
-                  userId,
-                  action: "STREAK_BONUS",
-                  points: POINT_VALUES.STREAK_BONUS,
-                  description: `Login streak bonus (${newStreak} days)`,
-                  loginDate: todayStr,
-                },
-              });
-            }
-
             return true;
           },
           {
-            timeout: 20000,
+            timeout: 5000, // Reduced to 5 seconds since all data is pre-fetched
           }
         );
       },
       {
-        maxAttempts: 3,
-        initialDelayMs: 200,
-        maxDelayMs: 2000,
+        maxAttempts: 2, // Reduced attempts since we pre-check
+        initialDelayMs: 100,
+        maxDelayMs: 500,
       }
     );
   } catch (error: any) {
@@ -248,7 +243,7 @@ export async function checkAndAwardDailyLogin(userId: string) {
       return false;
     }
     console.error("Failed to award daily login:", error);
-    throw error;
+    return false; // Fail gracefully instead of throwing
   } finally {
     // Always remove from active set
     activeLoginAwards.delete(userId);

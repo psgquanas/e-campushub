@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,6 +65,9 @@ export default function CourseMaterialsClient({
   const [selectedType, setSelectedType] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [previewFile, setPreviewFile] = useState<Material | null>(null);
+  const [displayCount, setDisplayCount] = useState(6);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Filter materials
   const filteredMaterials = courses
@@ -86,6 +89,51 @@ export default function CourseMaterialsClient({
         selectedType === "all" || material.type === selectedType;
       return matchesSearch && matchesType;
     });
+
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(6);
+  }, [searchQuery, selectedCourse, selectedType]);
+
+  // Infinite scroll logic
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (
+          target.isIntersecting &&
+          !isLoadingMore &&
+          displayCount < filteredMaterials.length
+        ) {
+          setIsLoadingMore(true);
+          // Simulate loading delay for better UX
+          setTimeout(() => {
+            setDisplayCount((prev) =>
+              Math.min(prev + 6, filteredMaterials.length)
+            );
+            setIsLoadingMore(false);
+          }, 300);
+        }
+      },
+      {
+        root: null,
+        rootMargin: "100px",
+        threshold: 0.1,
+      }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayCount, filteredMaterials.length, isLoadingMore]);
+
+  const displayedMaterials = filteredMaterials.slice(0, displayCount);
 
   const materialTypes = [
     { value: "all", label: "All Types" },
@@ -206,7 +254,7 @@ export default function CourseMaterialsClient({
 
         <TabsContent value="grid" className="mt-4 sm:mt-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredMaterials.map((material) => (
+            {displayedMaterials.map((material) => (
               <MaterialCard
                 key={material.id}
                 material={material}
@@ -218,7 +266,7 @@ export default function CourseMaterialsClient({
 
         <TabsContent value="list" className="mt-6">
           <div className="space-y-2">
-            {filteredMaterials.map((material) => (
+            {displayedMaterials.map((material) => (
               <MaterialListItem
                 key={material.id}
                 material={material}
@@ -228,6 +276,18 @@ export default function CourseMaterialsClient({
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Load More Trigger */}
+      {displayCount < filteredMaterials.length && (
+        <div ref={loadMoreRef} className="flex justify-center py-8">
+          {isLoadingMore && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Loading more materials...</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Empty State */}
       {filteredMaterials.length === 0 && (
