@@ -16,7 +16,7 @@ export const POINT_VALUES = {
   STREAK_BONUS: 5,
   ADMIN_AWARD: 0,
   PENALTY: 0,
-};
+} as const;
 
 export async function awardPoints({
   userId,
@@ -136,6 +136,8 @@ export async function checkAndAwardDailyLogin(userId: string) {
   if (activeLoginAwards.has(userId)) return false;
 
   try {
+    activeLoginAwards.add(userId); // Add BEFORE the check to prevent race condition
+
     // 2. Check if user already has a login record for today (OUTSIDE transaction)
     const existingLoginToday = await prisma.pointHistory.findFirst({
       where: {
@@ -149,8 +151,6 @@ export async function checkAndAwardDailyLogin(userId: string) {
     if (existingLoginToday) {
       return false; // Already logged in today
     }
-
-    activeLoginAwards.add(userId);
 
     // 3. Get user data for streak calculation (OUTSIDE transaction)
     const user = await prisma.user.findUnique({
