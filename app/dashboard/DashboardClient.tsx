@@ -1179,7 +1179,7 @@ export default function DashboardClient({
           </p>
         </div>
 
-        {userRank && (
+        {/*{userRank && (
           <Card className="w-full rounded-md sm:w-auto">
             <CardContent className="flex items-center gap-3 sm:p-4">
               <div className="flex items-center justify-center size-12 rounded-full bg-primary/10">
@@ -1193,8 +1193,8 @@ export default function DashboardClient({
                 </p>
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card> 
+        )}*/}
       </div>
 
       {/* Main Content Area */}
@@ -1365,7 +1365,7 @@ export default function DashboardClient({
         {/* Right Column - Widgets (1/3 width on desktop, sticky) */}
         <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* Leaderboard Widget */}
-          <Card className="rounded-md">
+          {/*<Card className="rounded-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Top Performers</CardTitle>
               <Link href="/dashboard/leaderboard">
@@ -1410,7 +1410,7 @@ export default function DashboardClient({
                 </div>
               ))}
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Recent Course Materials Widget */}
           <>

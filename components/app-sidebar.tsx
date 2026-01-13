@@ -71,11 +71,6 @@ export function AppSidebar({ isAdmin = false, ...props }: AppSidebarProps) {
       url: "/dashboard/hostel-listings",
       icon: IconListSearch,
     },
-    {
-      title: "Leaderboard",
-      url: "/dashboard/leaderboard",
-      icon: IconTrophy,
-    },
   ];
 
   const navSecondary = [

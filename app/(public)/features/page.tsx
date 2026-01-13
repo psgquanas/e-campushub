@@ -31,14 +31,6 @@ export default function FeaturesPage() {
         "Share your thoughts, ask questions, or vent safely without revealing your identity. Our moderated environment ensures a supportive community.",
     },
     {
-      icon: IconTrophy,
-      color: "text-yellow-500",
-      bg: "bg-yellow-100 dark:bg-yellow-900/30",
-      title: "Leaderboard",
-      description:
-        "Earn points for contributing valuable content. Compete with peers, climb the ranks, and get recognized as a top contributor.",
-    },
-    {
       icon: IconBook,
       color: "text-green-500",
       bg: "bg-green-100 dark:bg-green-900/30",
@@ -75,7 +67,6 @@ export default function FeaturesPage() {
   return (
     <div className="relative">
       <Navbar />
-      <SnowfallEffect />
       <div className="relative overflow-hidden min-h-screen">
         <GradientBackground />
         <div className="container mx-auto px-4 py-20 relative z-10">

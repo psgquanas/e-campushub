@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
 import { PointAction } from "@/lib/generated/prisma/client";
-import { withRetry } from "@/lib/retry";
 
 // Point values for different actions
 export const POINT_VALUES = {
@@ -132,13 +131,13 @@ export async function checkAndAwardDailyLogin(userId: string) {
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD format
 
-  // 1. Quick in-memory check to prevent parallel fires in the same process
+  // Quick in-memory check to prevent parallel fires in the same process
   if (activeLoginAwards.has(userId)) return false;
 
   try {
-    activeLoginAwards.add(userId); // Add BEFORE the check to prevent race condition
+    activeLoginAwards.add(userId);
 
-    // 2. Check if user already has a login record for today (OUTSIDE transaction)
+    // Check if user already has a login record for today
     const existingLoginToday = await prisma.pointHistory.findFirst({
       where: {
         userId,
@@ -152,98 +151,35 @@ export async function checkAndAwardDailyLogin(userId: string) {
       return false; // Already logged in today
     }
 
-    // 3. Get user data for streak calculation (OUTSIDE transaction)
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { lastLoginDate: true, currentStreak: true },
+    // Create daily login record
+    await prisma.pointHistory.create({
+      data: {
+        userId,
+        action: "DAILY_LOGIN",
+        points: POINT_VALUES.DAILY_LOGIN,
+        description: "Daily login bonus",
+        loginDate: todayStr,
+      },
     });
 
-    if (!user) {
-      return false;
-    }
-
-    const lastLogin = user.lastLoginDate;
-
-    // Calculate streak
-    let newStreak = 1;
-    let streakBonus = 0;
-
-    if (lastLogin) {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      const lastLoginDate = new Date(lastLogin);
-      lastLoginDate.setHours(0, 0, 0, 0);
-
-      if (lastLoginDate.getTime() === yesterday.getTime()) {
-        newStreak = user.currentStreak + 1;
-        streakBonus = POINT_VALUES.STREAK_BONUS;
-      }
-    }
-
-    const totalPoints = POINT_VALUES.DAILY_LOGIN + streakBonus;
-
-    // 4. Now do the transaction with all data ready (should be FAST)
-    return await withRetry(
-      async () => {
-        return await prisma.$transaction(
-          async (tx) => {
-            // Create daily login record
-            await tx.pointHistory.create({
-              data: {
-                userId,
-                action: "DAILY_LOGIN",
-                points: POINT_VALUES.DAILY_LOGIN,
-                description: "Daily login bonus",
-                loginDate: todayStr,
-              },
-            });
-
-            // Create streak bonus if applicable
-            if (newStreak > 1) {
-              await tx.pointHistory.create({
-                data: {
-                  userId,
-                  action: "STREAK_BONUS",
-                  points: POINT_VALUES.STREAK_BONUS,
-                  description: `Login streak bonus (${newStreak} days)`,
-                  loginDate: todayStr,
-                },
-              });
-            }
-
-            // Update user
-            await tx.user.update({
-              where: { id: userId },
-              data: {
-                lastLoginDate: new Date(),
-                currentStreak: newStreak,
-                points: {
-                  increment: totalPoints,
-                },
-              },
-            });
-
-            return true;
-          },
-          {
-            timeout: 5000, // Reduced to 5 seconds since all data is pre-fetched
-          }
-        );
+    // Update user points
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        points: {
+          increment: POINT_VALUES.DAILY_LOGIN,
+        },
       },
-      {
-        maxAttempts: 2, // Reduced attempts since we pre-check
-        initialDelayMs: 100,
-        maxDelayMs: 500,
-      }
-    );
+    });
+
+    return true;
   } catch (error: any) {
-    // Don't retry on unique constraint violations
+    // Handle unique constraint violations (duplicate login)
     if (error.code === "P2002") {
       return false;
     }
     console.error("Failed to award daily login:", error);
-    return false; // Fail gracefully instead of throwing
+    return false;
   } finally {
     // Always remove from active set
     activeLoginAwards.delete(userId);

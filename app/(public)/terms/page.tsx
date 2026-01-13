@@ -2,7 +2,6 @@ import GradientBackground from "../_components/Gradient";
 import Navbar from "../_components/Navbar";
 import FooterBlock from "../_components/Footer";
 import { Metadata } from "next";
-import SnowfallEffect from "@/components/snowfall-effect";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -13,7 +12,6 @@ export default function TermsPage() {
   return (
     <div className="relative">
       <Navbar />
-      <SnowfallEffect />
       <div className="relative overflow-hidden min-h-screen">
         <GradientBackground />
         <div className="container mx-auto px-4 py-20 relative z-10">

@@ -16,7 +16,9 @@ export default async function LeaderboardPage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  redirect("/dashboard");
+  {
+    /*const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session?.user) {
     redirect("/sign-in");
@@ -67,5 +69,6 @@ export default async function LeaderboardPage({
         initialFilter={(filter as "all" | "programme" | "level") || "all"}
       />
     </div>
-  );
+  ); */
+  }
 }

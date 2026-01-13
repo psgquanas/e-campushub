@@ -194,63 +194,66 @@ export default function LeaderboardClient({
                   return (
                     <div
                       key={user.id}
-                      className="relative overflow-hidden rounded-2xl mb-4 bg-linear-to-br from-yellow-500/20 via-amber-500/10 to-orange-500/20 border-2 border-yellow-500/50 shadow-xl"
+                      className="relative overflow-hidden rounded-xl mb-3 bg-linear-to-br from-yellow-500/20 via-amber-500/10 to-orange-500/20 border-2 border-yellow-500/50 shadow-xl"
                     >
                       {/* Content Container */}
-                      <div className="flex flex-col sm:flex-row items-center gap-4 p-6 sm:p-8">
+                      <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-6">
                         {/* Avatar with Crown */}
-                        <div className="relative">
+                        <div className="relative shrink-0">
                           <ProfileImageDialog
                             image={user.image}
                             name={user.name}
                           >
-                            <Avatar className="size-20 sm:size-24 ring-4 ring-yellow-500/50 shadow-xl">
+                            <Avatar className="size-12 sm:size-20 ring-2 sm:ring-4 ring-yellow-500/50 shadow-xl">
                               <AvatarImage src={user.image || undefined} />
-                              <AvatarFallback className="text-2xl sm:text-3xl font-bold bg-linear-to-br from-yellow-400 to-yellow-600 text-white">
+                              <AvatarFallback className="text-lg sm:text-3xl font-bold bg-linear-to-br from-yellow-400 to-yellow-600 text-white">
                                 {user.name[0]}
                               </AvatarFallback>
                             </Avatar>
                           </ProfileImageDialog>
-                          {/* Crown Badge - Next to Avatar */}
-                          <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3">
-                            <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-linear-to-br from-yellow-400 to-yellow-600 shadow-lg ring-4 ring-background">
-                              <IconCrown className="size-6 sm:size-8 text-white" />
+                          {/* Crown Badge */}
+                          <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2">
+                            <div className="flex items-center justify-center w-7 h-7 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-yellow-400 to-yellow-600 shadow-lg ring-2 sm:ring-4 ring-background">
+                              <IconCrown className="size-4 sm:size-7 text-white" />
                             </div>
                           </div>
                         </div>
 
                         {/* User Info */}
-                        <div className="flex-1 text-center sm:text-left">
-                          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 mb-2">
-                            <h4 className="font-bold text-xl sm:text-2xl">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <h4 className="font-bold text-base sm:text-xl truncate">
                               {user.name}
                             </h4>
                             {isCurrentUser && (
-                              <Badge variant="default" className="text-sm">
+                              <Badge
+                                variant="default"
+                                className="text-xs px-2 py-0"
+                              >
                                 You
                               </Badge>
                             )}
-                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-sm">
+                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-xs px-2 py-0">
                               🥇 Champion
                             </Badge>
                           </div>
-                          <p className="text-sm sm:text-base text-muted-foreground mb-1">
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             {user.programme?.name}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Level {user.currentLevel}
                           </p>
                         </div>
 
-                        {/* Points - Prominent */}
-                        <div className="flex flex-col items-center shrink-0">
-                          <div className="flex items-center gap-2">
-                            <IconStar className="size-7 sm:size-8 text-yellow-500 fill-yellow-500" />
-                            <span className="text-4xl sm:text-5xl font-bold bg-linear-to-br from-yellow-600 to-yellow-700 bg-clip-text text-transparent">
+                        {/* Points */}
+                        <div className="flex flex-col items-end shrink-0 ml-2">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <IconStar className="size-5 sm:size-7 text-yellow-500 fill-yellow-500" />
+                            <span className="text-2xl sm:text-4xl font-bold bg-linear-to-br from-yellow-600 to-yellow-700 bg-clip-text text-transparent">
                               {user.points}
                             </span>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wide mt-1">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide mt-0.5 sm:mt-1">
                             points
                           </p>
                         </div>
