@@ -42,7 +42,7 @@ export default function VerifyEmail({ verificationCode }: VerifyEmailProps) {
             <Section className="bg-white">
               <Section className="bg-[#252f3d] py-5">
                 <Img
-                  src="https://e-campushub.t3.storage.dev/ecampus-logo.png"
+                  src="https://e-campushub.com/ecampus-logo.png"
                   width="270"
                   height="50"
                   alt="E-CampusHub Logo"

@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   IconBellCheck,
+  IconBrain,
   IconCamera,
   IconDashboard,
   IconFileAi,
@@ -70,6 +71,12 @@ export function AppSidebar({ isAdmin = false, ...props }: AppSidebarProps) {
       title: "Hostel Listings",
       url: "/dashboard/hostel-listings",
       icon: IconListSearch,
+    },
+    {
+      title: "AI Study Hub",
+      url: "#",
+      icon: IconBrain,
+      disabled: true,
     },
   ];
 

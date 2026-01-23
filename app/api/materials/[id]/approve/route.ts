@@ -46,14 +46,16 @@ export async function POST(
       action: "MATERIAL_APPROVED",
     });
 
-    // Send notification to uploader
+    {
+      /*// Send notification to uploader
     await createNotification({
       userId: material.uploadedBy,
       type: "MATERIAL_APPROVED",
       title: "Material Approved! 🎉 + 50 points",
       message: `Your upload "${material.title}" for ${material.course.code} has been approved and you earned 50 bonus points!`,
       materialId: material.id,
-    });
+    }); */
+    }
 
     return NextResponse.json({
       success: true,

@@ -43,13 +43,15 @@ export async function POST(
       );
     }
 
-    // Send notification before deletion
+    {
+      /*// Send notification before deletion
     await createNotification({
       userId: material.uploadedBy,
       type: "MATERIAL_REJECTED",
       title: "Material Rejected",
       message: `Your upload "${material.title}" for ${material.course.code} was not approved. Please ensure materials meet quality guidelines and try again.`,
-    });
+    }); */
+    }
 
     // Delete from S3
     try {
