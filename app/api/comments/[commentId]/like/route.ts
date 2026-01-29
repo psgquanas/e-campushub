@@ -7,14 +7,14 @@ import { awardPoints } from "@/lib/point";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ commentId: string }> }
+  { params }: { params: Promise<{ commentId: string }> },
 ) {
   const arcjet = aj.withRule(
     slidingWindow({
       mode: "LIVE",
       interval: "60m",
       max: 100,
-    })
+    }),
   );
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -34,7 +34,7 @@ export async function POST(
           {
             message: "Too many attempts. Try again in a few minutes.",
           },
-          { status: 429 }
+          { status: 429 },
         );
       }
       return NextResponse.json({ message: "Request blocked" }, { status: 403 });
@@ -72,6 +72,7 @@ export async function POST(
           comment: {
             select: {
               authorId: true,
+              postId: true,
             },
           },
         },
@@ -82,6 +83,21 @@ export async function POST(
         userId: like.comment.authorId,
         action: "COMMENT_LIKED",
       });
+
+      // Create notification for comment author (if not liking own comment)
+      if (like.comment.authorId !== userId) {
+        const { createNotification } = await import("@/lib/notifications");
+        await createNotification({
+          userId: like.comment.authorId,
+          type: "COMMENT_LIKED",
+          title: "New like on your comment",
+          message: `${session.user.name} liked your comment`,
+          commentId,
+          postId: like.comment.postId,
+        }).catch((err) => {
+          console.error("Failed to create notification:", err);
+        });
+      }
     }
 
     return new NextResponse("OK", { status: 200 });

@@ -7,14 +7,14 @@ import aj, { slidingWindow } from "@/lib/arcjet";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const arcjet = aj.withRule(
     slidingWindow({
       mode: "LIVE",
       interval: "60m",
       max: 30,
-    })
+    }),
   );
 
   try {
@@ -38,19 +38,19 @@ export async function POST(
           {
             message: "Too many attempts. Try again in a few minutes.",
           },
-          { status: 429 }
+          { status: 429 },
         );
       }
       return NextResponse.json({ message: "Request blocked" }, { status: 403 });
     }
 
     const { id: postId } = await params;
-    const { content } = await req.json();
+    const { content, parentId } = await req.json();
 
     if (!content?.trim()) {
       return NextResponse.json(
         { error: "Comment content is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,6 +59,7 @@ export async function POST(
         content: content.trim(),
         postId,
         authorId: session.user.id,
+        parentId: parentId || undefined,
       },
       include: {
         author: {
@@ -68,6 +69,18 @@ export async function POST(
             image: true,
           },
         },
+        post: {
+          select: {
+            authorId: true,
+          },
+        },
+        parent: parentId
+          ? {
+              select: {
+                authorId: true,
+              },
+            }
+          : undefined,
         likes: true,
         _count: {
           select: {
@@ -86,12 +99,45 @@ export async function POST(
       console.error("Failed to award points for comment:", err);
     });
 
+    const { createNotification } = await import("@/lib/notifications");
+
+    // Create notification if this is a reply to another comment
+    if (
+      parentId &&
+      comment.parent &&
+      comment.parent.authorId !== session.user.id
+    ) {
+      await createNotification({
+        userId: comment.parent.authorId,
+        type: "COMMENT_REPLY",
+        title: "New reply to your comment",
+        message: `${session.user.name} replied to your comment`,
+        commentId: parentId,
+        postId,
+      }).catch((err) => {
+        console.error("Failed to create notification:", err);
+      });
+    }
+    // Create notification for post author if commenting on their post (not a reply)
+    else if (!parentId && comment.post.authorId !== session.user.id) {
+      await createNotification({
+        userId: comment.post.authorId,
+        type: "COMMENT_REPLY",
+        title: "New comment on your post",
+        message: `${session.user.name} commented on your post`,
+        commentId: comment.id,
+        postId,
+      }).catch((err) => {
+        console.error("Failed to create notification:", err);
+      });
+    }
+
     return NextResponse.json({ success: true, comment });
   } catch (error) {
     console.error("Add comment error:", error);
     return NextResponse.json(
       { error: "Failed to add comment" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

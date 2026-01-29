@@ -7,14 +7,14 @@ import { awardPoints } from "@/lib/point";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const arcjet = aj.withRule(
     slidingWindow({
       mode: "LIVE",
       interval: "60m",
       max: 100,
-    })
+    }),
   );
 
   try {
@@ -39,12 +39,12 @@ export async function POST(
             error: "Rate limit exceeded",
             message: "Too many attempts. Try again in a few minutes.",
           },
-          { status: 429 }
+          { status: 429 },
         );
       }
       return NextResponse.json(
         { error: "Forbidden", message: "Request blocked" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -90,13 +90,27 @@ export async function POST(
         action: "POST_LIKED",
       });
 
+      // Create notification for post author (if not liking own post)
+      if (like.post.authorId !== session.user.id) {
+        const { createNotification } = await import("@/lib/notifications");
+        await createNotification({
+          userId: like.post.authorId,
+          type: "POST_LIKED",
+          title: "New like on your post",
+          message: `${session.user.name} liked your post`,
+          postId,
+        }).catch((err) => {
+          console.error("Failed to create notification:", err);
+        });
+      }
+
       return NextResponse.json({ success: true, liked: true });
     }
   } catch (error) {
     console.error("Toggle like error:", error);
     return NextResponse.json(
       { error: "Failed to toggle like" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -124,6 +124,10 @@ model Notification {
   message   String
   materialId String?
   material   CourseMaterial? @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   PostComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -135,6 +139,9 @@ enum NotificationType {
   MATERIAL_APPROVED
   MATERIAL_REJECTED
   SYSTEM
+  POST_LIKED
+  COMMENT_LIKED
+  COMMENT_REPLY
 }
 
 model User {
@@ -235,6 +242,7 @@ model Post {
   likes       PostLike[]
   comments    PostComment[]
   postViews   PostView[]
+  notifications Notification[]
   
   @@index([authorId])
   @@index([createdAt])
@@ -282,6 +290,7 @@ model PostComment {
   updatedAt DateTime @updatedAt
   
   likes     CommentLike[]
+  notifications Notification[]
   
   parentId  String?
   parent    PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)

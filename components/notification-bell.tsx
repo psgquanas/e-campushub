@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -28,13 +29,28 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: Date;
+  postId?: string | null;
+  commentId?: string | null;
   material?: {
     title: string;
     type: string;
   } | null;
+  post?: {
+    id: string;
+    content: string;
+    author: {
+      name: string;
+    };
+  } | null;
+  comment?: {
+    id: string;
+    content: string;
+    postId: string;
+  } | null;
 }
 
 export function NotificationBell() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -46,10 +62,24 @@ export function NotificationBell() {
       const data = await response.json();
       setNotifications(data.notifications);
       setUnreadCount(
-        data.notifications.filter((n: Notification) => !n.isRead).length
+        data.notifications.filter((n: Notification) => !n.isRead).length,
       );
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+
+    // Navigate to the post modal
+    if (notification.postId || notification.comment?.postId) {
+      const postId = notification.postId || notification.comment?.postId;
+      router.push(`/dashboard/feed/${postId}`);
+      setOpen(false);
     }
   };
 
@@ -68,7 +98,7 @@ export function NotificationBell() {
     const previousUnreadCount = unreadCount;
 
     setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
+      prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)),
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
@@ -115,6 +145,33 @@ export function NotificationBell() {
         return (
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/15 text-red-600 dark:text-red-500">
             <IconX className="size-5" />
+          </div>
+        );
+      case "POST_LIKED":
+      case "COMMENT_LIKED":
+        return (
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-500/15 text-pink-600 dark:text-pink-500">
+            <svg className="size-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </div>
+        );
+      case "COMMENT_REPLY":
+        return (
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-500">
+            <svg
+              className="size-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+              />
+            </svg>
           </div>
         );
       default:
@@ -183,11 +240,7 @@ export function NotificationBell() {
                   className={`p-4 hover:bg-accent cursor-pointer transition-colors relative group ${
                     !notification.isRead ? "bg-accent/50" : ""
                   }`}
-                  onClick={() => {
-                    if (!notification.isRead) {
-                      markAsRead(notification.id);
-                    }
-                  }}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 mt-0.5">

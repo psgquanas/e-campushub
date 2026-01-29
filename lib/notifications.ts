@@ -6,12 +6,22 @@ export async function createNotification({
   title,
   message,
   materialId,
+  postId,
+  commentId,
 }: {
   userId: string;
-  type: "MATERIAL_APPROVED" | "MATERIAL_REJECTED" | "SYSTEM";
+  type:
+    | "MATERIAL_APPROVED"
+    | "MATERIAL_REJECTED"
+    | "SYSTEM"
+    | "POST_LIKED"
+    | "COMMENT_LIKED"
+    | "COMMENT_REPLY";
   title: string;
   message: string;
   materialId?: string;
+  postId?: string;
+  commentId?: string;
 }) {
   return await prisma.notification.create({
     data: {
@@ -20,6 +30,8 @@ export async function createNotification({
       title,
       message,
       materialId,
+      postId,
+      commentId,
     },
   });
 }
@@ -37,6 +49,24 @@ export async function getUnreadNotifications(userId: string) {
           type: true,
         },
       },
+      post: {
+        select: {
+          id: true,
+          content: true,
+          author: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      comment: {
+        select: {
+          id: true,
+          content: true,
+          postId: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -50,6 +80,24 @@ export async function getAllNotifications(userId: string) {
         select: {
           title: true,
           type: true,
+        },
+      },
+      post: {
+        select: {
+          id: true,
+          content: true,
+          author: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      comment: {
+        select: {
+          id: true,
+          content: true,
+          postId: true,
         },
       },
     },
