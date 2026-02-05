@@ -589,7 +589,7 @@ export function ChatAssistant() {
             className="w-full flex items-center gap-2 mb-4"
             variant="outline"
           >
-            <IconPlus size={18} />
+            <IconPlus size={17} />
             New Chat
           </Button>
         </div>
@@ -606,7 +606,7 @@ export function ChatAssistant() {
             ) : history.length === 0 ? (
               <div className="text-center py-10 px-4">
                 <p className="text-xs text-muted-foreground">
-                  No history yet. Start a new chat!
+                  No history yet. Start new chat!
                 </p>
               </div>
             ) : (
