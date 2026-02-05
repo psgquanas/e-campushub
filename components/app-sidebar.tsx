@@ -76,7 +76,16 @@ export function AppSidebar({ isAdmin = false, ...props }: AppSidebarProps) {
       title: "AI Study Hub",
       url: "#",
       icon: IconBrain,
-      disabled: true,
+      items: [
+        {
+          title: "Chat Assistant",
+          url: "/dashboard/ai-study-hub/chat-assistant",
+        },
+        {
+          title: "Practice Quizzes",
+          url: "/dashboard/ai-study-hub/quiz",
+        },
+      ],
     },
   ];
 

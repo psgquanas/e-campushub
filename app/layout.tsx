@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import GoogleAnalytics from "./google-analytics";
+import Script from "next/script";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -41,6 +42,13 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${outfit.variable} ${sourceSerif.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5074038682866971"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={`${outfit.variable} ${outfit.variable} antialiased`}>
         <ThemeProvider
           attribute="class"

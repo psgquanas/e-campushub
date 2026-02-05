@@ -18,6 +18,8 @@ export const env = createEnv({
     ADMIN_EMAILS: z.string().min(1),
     UPSTASH_REDIS_REST_URL: z.string().url(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+    GEMINI_API_KEY: z.string().min(1),
+    AI_GATEWAY_API_KEY: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_S3_BUCKET_NAME_FILES: z.string().min(1),
@@ -35,6 +37,8 @@ export const env = createEnv({
     AWS_ENDPOINT_URL_S3: process.env.AWS_ENDPOINT_URL_S3,
     AWS_ENDPOINT_URL_IAM: process.env.AWS_ENDPOINT_URL_IAM,
     AWS_REGION: process.env.AWS_REGION,
+    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     ADMIN_EMAILS: process.env.ADMIN_EMAILS,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,

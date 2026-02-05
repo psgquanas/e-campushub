@@ -163,6 +163,15 @@ model User {
   updatedAt         DateTime         @updatedAt
   sessions          Session[]
   accounts          Account[]
+  chatSessions    ChatSession[]
+  documents       Document[]
+  studyPlans      StudyPlan[]
+  quizzes         Quiz[]
+  flashcardDecks  FlashcardDeck[]
+  studyNotes      StudyNote[]
+  aiUsage         AIUsage[]
+  studyStreak     StudyStreak?
+  achievements    Achievement[]
   uploadedMaterials CourseMaterial[] @relation("UploadedMaterials")
   verifiedMaterials CourseMaterial[] @relation("VerifiedMaterials")
   notifications     Notification[]
@@ -451,4 +460,278 @@ model ConfessionReport {
   @@index([confessionId])
   @@index([userId])
   @@map("confession_report")
+}
+
+// Chat Sessions - Store conversation history
+model ChatSession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String    @default("New Chat")
+  subject     String    @default("general") // general, mathematics, science, history, etc.
+  
+  messages    Message[]
+  documents   Document[]
+  
+  // Metadata
+  isArchived  Boolean   @default(false)
+  isPinned    Boolean   @default(false)
+  messageCount Int      @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastMessageAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([userId, lastMessageAt])
+  @@index([userId, subject])
+}
+
+// Messages within chat sessions
+model Message {
+  id            String      @id @default(cuid())
+  sessionId     String
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  role          String      // "user" or "assistant"
+  content       String      @db.Text
+  
+  // Optional: Token usage tracking
+  tokensUsed    Int?
+  model         String?     // "gemini-1.5-flash", "claude-haiku-4.5", etc.
+  
+  // Attachments
+  attachments   Json?       // Array of {name, type, url, size}
+  
+  createdAt     DateTime    @default(now())
+  
+  @@index([sessionId])
+  @@index([sessionId, createdAt])
+}
+
+// Documents uploaded by users
+model Document {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  sessionId     String?
+  session       ChatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  
+  // File info
+  fileName      String
+  fileUrl       String       // Cloud storage URL
+  fileType      String       // "pdf", "docx", "txt", "image", etc.
+  fileSize      Int          // In bytes
+  
+  // Extracted content
+  extractedText String?      @db.Text
+  summary       String?      @db.Text
+  
+  // Status
+  status        String       @default("processing") // "processing", "ready", "failed"
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([userId, createdAt])
+}
+
+// Study Plans - Personalized learning schedules
+model StudyPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  subject     String
+  description String?  @db.Text
+  
+  // Goals and tasks (JSON)
+  goals       Json     // Array of goal objects
+  tasks       Json     // Array of task objects with status
+  
+  // Timeline
+  startDate   DateTime
+  endDate     DateTime
+  
+  // Progress tracking
+  progress    Int      @default(0) // 0-100
+  completed   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([userId, completed])
+}
+
+// AI-Generated Quizzes
+model Quiz {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  subject     String
+  difficulty  String   @default("medium") // "easy", "medium", "hard"
+  
+  // Quiz content (JSON)
+  questions   Json     // Array of question objects
+  userAnswers Json?
+  
+  // Scoring
+  score       Int?
+  totalPoints Int
+  percentage  Float?
+  
+  // Status
+  completed   Boolean  @default(false)
+  attempts    Int      @default(0)
+  
+  // Time tracking
+  timeLimit   Int?     // In seconds
+  timeTaken   Int?     // In seconds
+  
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  @@index([userId])
+  @@index([userId, completed])
+  @@index([userId, subject])
+}
+
+// Flashcard Decks
+model FlashcardDeck {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  subject     String
+  description String?     @db.Text
+  
+  flashcards  Flashcard[]
+  
+  // Study tracking
+  lastStudied DateTime?
+  studyCount  Int         @default(0)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([userId])
+  @@index([userId, subject])
+}
+
+// Individual Flashcards
+model Flashcard {
+  id          String        @id @default(cuid())
+  deckId      String
+  deck        FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  
+  front       String        @db.Text
+  back        String        @db.Text
+  
+  // Spaced repetition data
+  easeFactor  Float         @default(2.5)
+  interval    Int           @default(0) // Days
+  repetitions Int           @default(0)
+  nextReview  DateTime?
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  @@index([deckId])
+  @@index([nextReview])
+}
+
+// Study Notes - AI-generated or user-created
+model StudyNote {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  subject     String
+  content     String   @db.Text
+  
+  // Source tracking
+  sourceType  String?  // "ai_generated", "user_created", "imported"
+  sourceUrl   String?
+  
+  // Organization
+  tags        String[] // Array of tags
+  isPinned    Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([userId, subject])
+  @@index([userId, isPinned])
+}
+
+// AI Usage Tracking (for cost monitoring)
+model AIUsage {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Request details
+  model         String   // "gemini-1.5-flash", "claude-haiku-4.5"
+  feature       String   // "chat", "quiz", "flashcards", "summary"
+  
+  // Token usage
+  inputTokens   Int
+  outputTokens  Int
+  cachedTokens  Int      @default(0)
+  
+  // Cost calculation
+  estimatedCost Float    // In dollars
+  
+  // Session reference
+  sessionId     String?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+// Study Streaks & Achievements
+model StudyStreak {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  currentStreak Int      @default(0)
+  longestStreak Int      @default(0)
+  lastStudyDate DateTime?
+  totalSessions Int      @default(0)
+  
+  updatedAt     DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+// Study Achievements/Badges
+model Achievement {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String   // "streak_7", "quiz_master", "note_taker", etc.
+  title       String
+  description String
+  icon        String?
+  
+  unlockedAt  DateTime @default(now())
+  
+  @@unique([userId, type])
+  @@index([userId])
 }
