@@ -8,7 +8,7 @@ import VerifyEmail from "@/react-email-starter/emails/verify-email";
 import type { Session, User } from "better-auth/types";
 import { createAuthMiddleware } from "better-auth/api";
 import { ADMIN_EMAILS } from "./admin";
-import { checkAndAwardDailyLogin } from "./point";
+import { checkAndAwardDailyLogin, checkAndAwardWelcomeBonus } from "./point";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -77,6 +77,11 @@ export const auth = betterAuth({
         console.error("Failed to award daily login points:", err);
       });
 
+      // Check for welcome bonus reward
+      checkAndAwardWelcomeBonus(user.id).catch((err: unknown) => {
+        console.error("Failed to award welcome bonus points:", err);
+      });
+
       // The role and programmeId are already on the user object
       // from additionalFields, so we can just return them
       return {
@@ -101,7 +106,7 @@ export const auth = betterAuth({
             console.log(
               `User ${email} signed in with role: ${
                 newSession.user.role || "USER"
-              }`
+              }`,
             );
           }
         }

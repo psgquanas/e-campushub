@@ -4,20 +4,28 @@ import * as React from "react";
 import {
   IconBellCheck,
   IconBrain,
-  IconCamera,
+  IconCoin,
   IconDashboard,
-  IconFileAi,
-  IconFileDescription,
-  IconHelp,
-  IconInnerShadowTop,
+  IconHistory,
+  IconInfoCircle,
   IconListDetails,
   IconListSearch,
   IconNews,
-  IconSearch,
-  IconTrophy,
+  IconPlus,
+  IconTrash,
   IconUserCircle,
   IconViewfinder,
 } from "@tabler/icons-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
@@ -41,6 +49,15 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 export function AppSidebar({ isAdmin = false, ...props }: AppSidebarProps) {
   const { setOpenMobile } = useSidebar();
+  const [points, setPoints] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    // Fetch user points
+    fetch("/api/user/points")
+      .then((res) => res.json())
+      .then((data) => setPoints(data.points))
+      .catch((err) => console.error("Failed to fetch points:", err));
+  }, []);
 
   const handleNavigate = () => {
     setOpenMobile(false);
@@ -111,7 +128,7 @@ export function AppSidebar({ isAdmin = false, ...props }: AppSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <SidebarMenuButton
                 asChild
                 className="data-[slot=sidebar-menu-button]:p-1.5!"
@@ -129,6 +146,146 @@ export function AppSidebar({ isAdmin = false, ...props }: AppSidebarProps) {
                   />
                 </a>
               </SidebarMenuButton>
+              {points !== null && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer border border-primary/20">
+                      <IconCoin
+                        size={16}
+                        className="text-yellow-500 animate-pulse"
+                      />
+                      <span className="text-sm font-bold">{points}</span>
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Image
+                          src="/ecampus-logo.svg"
+                          alt="Logo"
+                          width={100}
+                          height={40}
+                          className="h-8 w-auto sm:h-8"
+                        />
+                        Points System
+                      </DialogTitle>
+                      <DialogDescription>
+                        Earn points by contributing to the community and spend
+                        them on premium AI features.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-6 py-4">
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold flex items-center gap-2 text-primary">
+                          <IconPlus size={16} />
+                          How to Earn
+                        </h4>
+                        <div className="grid gap-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Daily Login Bonus
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-green-500/10 text-green-600 border-none font-bold"
+                            >
+                              +5 pts
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Upload Course Material
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-green-500/10 text-green-600 border-none font-bold"
+                            >
+                              +10 pts
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Material Verified by Admin
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-green-500/10 text-green-600 border-none font-bold"
+                            >
+                              +50 pts
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Create an Anonymous Post
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-green-500/10 text-green-600 border-none font-bold"
+                            >
+                              +5 pts
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Comment on a Post
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-green-500/10 text-green-600 border-none font-bold"
+                            >
+                              +2 pts
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold flex items-center gap-2 text-destructive">
+                          <IconTrash size={16} />
+                          AI Feature Costs
+                        </h4>
+                        <div className="grid gap-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              AI Chat Message
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-destructive/10 text-destructive border-none font-bold"
+                            >
+                              -5 pts
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Generate Practice Quiz
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-destructive/10 text-destructive border-none font-bold"
+                            >
+                              -20 pts
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Document Analysis Upload
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-destructive/10 text-destructive border-none font-bold"
+                            >
+                              -10 pts
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </SidebarMenuItem>
         </SidebarMenu>

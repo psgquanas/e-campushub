@@ -7,6 +7,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "@/lib/env";
 import mammoth from "mammoth";
 import arcjet, { slidingWindow } from "@/lib/arcjet";
+import { checkBalance, deductPoints, POINT_COSTS } from "@/lib/points";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for chat docs
 const ALLOWED_FILE_TYPES = [
@@ -42,6 +43,23 @@ export async function POST(req: NextRequest) {
         );
       }
       return NextResponse.json({ message: "Request blocked" }, { status: 403 });
+    }
+
+    // Check if user has enough points
+    const hasEnoughPoints = await checkBalance(
+      session.user.id,
+      POINT_COSTS.AI_DOCUMENT_UPLOAD,
+    );
+
+    if (!hasEnoughPoints) {
+      return NextResponse.json(
+        {
+          error: "Insufficient points",
+          message: `You need ${POINT_COSTS.AI_DOCUMENT_UPLOAD} points to upload a document. Earn more points by uploading materials, posting, or logging in daily!`,
+          required: POINT_COSTS.AI_DOCUMENT_UPLOAD,
+        },
+        { status: 402 },
+      );
     }
 
     const formData = await req.formData();
@@ -163,6 +181,14 @@ export async function POST(req: NextRequest) {
         status: "ready",
       },
     });
+
+    // Deduct points for document upload
+    await deductPoints(
+      session.user.id,
+      POINT_COSTS.AI_DOCUMENT_UPLOAD,
+      "AI_DOCUMENT_UPLOAD",
+      `Uploaded document: ${file.name}`,
+    );
 
     return NextResponse.json({
       success: true,

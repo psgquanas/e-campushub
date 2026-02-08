@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/getSession";
 import { env } from "@/lib/env";
 import arcjet, { slidingWindow } from "@/lib/arcjet";
+import { checkBalance, deductPoints, POINT_COSTS } from "@/lib/points";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,6 +31,23 @@ export async function POST(req: NextRequest) {
         );
       }
       return NextResponse.json({ message: "Request blocked" }, { status: 403 });
+    }
+
+    // Check if user has enough points
+    const hasEnoughPoints = await checkBalance(
+      session.user.id,
+      POINT_COSTS.AI_CHAT_MESSAGE,
+    );
+
+    if (!hasEnoughPoints) {
+      return NextResponse.json(
+        {
+          error: "Insufficient points",
+          message: `You need ${POINT_COSTS.AI_CHAT_MESSAGE} points to send a message. Earn more points by uploading materials, posting, or logging in daily!`,
+          required: POINT_COSTS.AI_CHAT_MESSAGE,
+        },
+        { status: 402 },
+      );
     }
 
     const { message, subject, sessionId, documentIds } = await req.json();
@@ -173,7 +191,15 @@ When students ask questions, first ensure you understand what they're asking, th
             },
           });
 
-          // 6. Generate title asynchronously for new sessions (don't await)
+          // 6. Deduct points for AI chat message
+          await deductPoints(
+            userId,
+            POINT_COSTS.AI_CHAT_MESSAGE,
+            "AI_CHAT_MESSAGE",
+            `Chat message in ${subject || "general"} session`,
+          );
+
+          // 7. Generate title asynchronously for new sessions (don't await)
           if (chatSession.messageCount === 0) {
             fetch(`${env.BETTER_AUTH_URL}/api/chat/generate-title`, {
               method: "POST",

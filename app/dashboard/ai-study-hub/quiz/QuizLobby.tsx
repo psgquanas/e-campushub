@@ -66,6 +66,19 @@ export function QuizLobby({}: QuizLobbyProps) {
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [difficulty, setDifficulty] = useState<string>("Med");
+  const [userPoints, setUserPoints] = useState<number | null>(null);
+
+  const fetchUserPoints = async () => {
+    try {
+      const res = await fetch("/api/user/points");
+      if (res.ok) {
+        const data = await res.json();
+        setUserPoints(data.points);
+      }
+    } catch (error) {
+      console.error("Failed to fetch points:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -98,6 +111,7 @@ export function QuizLobby({}: QuizLobbyProps) {
 
     fetchCourses();
     fetchQuizzes();
+    fetchUserPoints();
   }, []);
 
   useEffect(() => {
@@ -163,14 +177,19 @@ export function QuizLobby({}: QuizLobbyProps) {
       });
 
       if (!response.ok) {
+        if (response.status === 402) {
+          const data = await response.json();
+          throw new Error(data.message || "Insufficient points");
+        }
         throw new Error("Failed to generate quiz");
       }
 
       const generatedQuiz = await response.json();
       router.push(`/dashboard/ai-study-hub/quiz/${generatedQuiz.id}`);
-    } catch (error) {
+      fetchUserPoints(); // Refresh points balance
+    } catch (error: any) {
       console.error("Generation error:", error);
-      toast.error("Failed to generate quiz");
+      toast.error(error.message || "Failed to generate quiz");
     } finally {
       setIsGenerating(false);
     }
@@ -398,7 +417,13 @@ export function QuizLobby({}: QuizLobbyProps) {
               ) : (
                 <>
                   <IconPlus size={18} />
-                  Start New Quiz
+                  <span>Start New Quiz</span>
+                  <Badge
+                    variant="secondary"
+                    className="ml-auto bg-primary/20 text-primary border-none text-[10px]"
+                  >
+                    20 pts
+                  </Badge>
                 </>
               )}
             </Button>

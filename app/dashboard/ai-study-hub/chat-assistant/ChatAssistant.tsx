@@ -115,6 +115,7 @@ export function ChatAssistant() {
   const [userHasScrolled, setUserHasScrolled] = useState(false);
   const [sessionDocuments, setSessionDocuments] = useState<ChatDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [userPoints, setUserPoints] = useState<number | null>(null);
 
   // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -195,10 +196,22 @@ export function ChatAssistant() {
 
   // Initial load if ID in URL
   useEffect(() => {
+    fetchUserPoints();
     if (sessionIdFromUrl) {
       loadSession(sessionIdFromUrl, false);
     }
   }, []);
+
+  const fetchUserPoints = async () => {
+    try {
+      const res = await fetch("/api/user/points");
+      if (!res.ok) throw new Error("Failed to fetch points");
+      const data = await res.json();
+      setUserPoints(data.points);
+    } catch (error) {
+      console.error("Error fetching points:", error);
+    }
+  };
 
   const fetchHistory = async () => {
     setIsLoadingHistory(true);
@@ -301,6 +314,14 @@ export function ChatAssistant() {
         }),
       });
 
+      if (response.status === 402) {
+        toast.error("Insufficient points!", { id: "insufficient-points" });
+        // Remove the loading message
+        setMessages((prev) => prev.filter((m) => m.id !== assistantMessageId));
+        setIsSending(false);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error("Failed to get response");
       }
@@ -360,22 +381,37 @@ export function ChatAssistant() {
       }
     } catch (error: any) {
       console.error("Chat error:", error);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMessageId
-            ? {
-                ...msg,
-                content: "Sorry, I encountered an error. Please try again.",
-              }
-            : msg,
-        ),
-      );
-      toast.error(error.message || "Failed to send message");
+
+      // Handle insufficient points error
+      if (
+        error.message?.includes("Insufficient points") ||
+        error.message?.includes("402")
+      ) {
+        setMessages((prev) =>
+          prev.filter((msg) => msg.id !== assistantMessageId),
+        );
+        toast.error(
+          "Insufficient points! You need 5 points to send a message.",
+        );
+      } else {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? {
+                  ...msg,
+                  content: "Sorry, I encountered an error. Please try again.",
+                }
+              : msg,
+          ),
+        );
+        toast.error(error.message || "Failed to send message");
+      }
     } finally {
       setIsSending(false);
       setUserHasScrolled(false);
 
-      // Refresh history after a delay to show AI-generated title
+      // Refresh points and history
+      fetchUserPoints();
       setTimeout(() => {
         fetchHistory();
       }, 3000);
@@ -410,6 +446,11 @@ export function ChatAssistant() {
         method: "POST",
         body: formData,
       });
+
+      if (response.status === 402) {
+        toast.error("Insufficient points!", { id: "insufficient-points" });
+        return;
+      }
 
       const data = await response.json();
 
@@ -564,7 +605,7 @@ export function ChatAssistant() {
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className={cn(
-          "bg-muted/30 border-r flex flex-col absolute inset-y-0 left-0 z-40 md:relative",
+          "bg-muted/30 border-r flex flex-col absolute inset-y-0 left-0 z-40 md:relative h-full",
           !isSidebarOpen && "pointer-events-none md:w-0",
         )}
       >
@@ -594,103 +635,105 @@ export function ChatAssistant() {
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 px-3 min-w-[256px]">
-          <div className="space-y-2 pb-4">
-            {isLoadingHistory ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs text-muted-foreground">
-                  Loading history...
-                </span>
-              </div>
-            ) : history.length === 0 ? (
-              <div className="text-center py-10 px-4">
-                <p className="text-xs text-muted-foreground">
-                  No history yet. Start new chat!
-                </p>
-              </div>
-            ) : (
-              history.map((session) => (
-                <div
-                  key={session.id}
-                  className={cn(
-                    "group relative flex flex-col p-2.5 rounded-lg hover:bg-accent transition-colors border border-transparent hover:border-accent",
-                    currentSessionId === session.id &&
-                      "bg-accent border-accent",
-                  )}
-                >
-                  <div
-                    onClick={() => loadSession(session.id)}
-                    className="cursor-pointer flex-1"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <span className="text-sm font-medium truncate flex-1 min-w-0">
-                        {truncateTitle(session.title)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {session.timestamp.toLocaleDateString([], {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        •
-                      </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
-                        {session.lastMessage}
-                      </span>
-                    </div>
-                    <div className="flex gap-1">
-                      <Badge
-                        variant="secondary"
-                        className="text-[9px] px-1 py-0 h-3.5 uppercase"
-                      >
-                        {session.subject}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Dropdown menu */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 h-6 w-6 "
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <IconDotsVertical size={14} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openRenameDialog(session.id, session.title);
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <IconEdit size={14} />
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDeleteDialog(session.id);
-                        }}
-                        className="flex items-center gap-2 text-destructive focus:text-destructive"
-                      >
-                        <IconTrash size={14} />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+        <ScrollArea className="flex-1 w-full overflow-y-auto">
+          <div className="px-3 min-w-[256px]">
+            <div className="space-y-2 pb-4">
+              {isLoadingHistory ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-2">
+                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-muted-foreground">
+                    Loading history...
+                  </span>
                 </div>
-              ))
-            )}
+              ) : history.length === 0 ? (
+                <div className="text-center py-10 px-4">
+                  <p className="text-xs text-muted-foreground">
+                    No history yet. Start new chat!
+                  </p>
+                </div>
+              ) : (
+                history.map((session) => (
+                  <div
+                    key={session.id}
+                    className={cn(
+                      "group relative flex flex-col p-2.5 rounded-lg hover:bg-accent transition-colors border border-transparent hover:border-accent",
+                      currentSessionId === session.id &&
+                        "bg-accent border-accent",
+                    )}
+                  >
+                    <div
+                      onClick={() => loadSession(session.id)}
+                      className="cursor-pointer flex-1"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="text-sm font-medium truncate flex-1 min-w-0">
+                          {truncateTitle(session.title)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          {session.timestamp.toLocaleDateString([], {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          •
+                        </span>
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {session.lastMessage}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] px-1 py-0 h-3.5 uppercase"
+                        >
+                          {session.subject}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Dropdown menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 "
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <IconDotsVertical size={14} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRenameDialog(session.id, session.title);
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <IconEdit size={14} />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteDialog(session.id);
+                          }}
+                          className="flex items-center gap-2 text-destructive focus:text-destructive"
+                        >
+                          <IconTrash size={14} />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </ScrollArea>
       </motion.div>
@@ -865,28 +908,30 @@ export function ChatAssistant() {
           <div className="max-w-3xl mx-auto relative group">
             {/* Uploaded Documents Context */}
             {sessionDocuments.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {sessionDocuments.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center gap-2 bg-muted/50 border rounded-lg px-2 py-1.5 animate-in fade-in slide-in-from-bottom-1"
-                  >
-                    {doc.fileType.includes("pdf") ? (
-                      <IconFileText size={14} className="text-red-500" />
-                    ) : (
-                      <IconFile size={14} className="text-blue-500" />
-                    )}
-                    <span className="text-[11px] font-medium truncate max-w-[120px]">
-                      {doc.fileName}
-                    </span>
-                    <button
-                      onClick={() => removeDocument(doc.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+              <div className="max-h-32 overflow-y-auto mb-3 pr-1 scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20">
+                <div className="flex flex-wrap gap-2">
+                  {sessionDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-2 bg-muted/50 border rounded-lg px-2 py-1.5 animate-in fade-in slide-in-from-bottom-1"
                     >
-                      <IconX size={12} />
-                    </button>
-                  </div>
-                ))}
+                      {doc.fileType.includes("pdf") ? (
+                        <IconFileText size={14} className="text-red-500" />
+                      ) : (
+                        <IconFile size={14} className="text-blue-500" />
+                      )}
+                      <span className="text-[11px] font-medium truncate max-w-[120px]">
+                        {doc.fileName}
+                      </span>
+                      <button
+                        onClick={() => removeDocument(doc.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+                      >
+                        <IconX size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -915,9 +960,9 @@ export function ChatAssistant() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-foreground"
+                  className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-foreground relative group"
                   onClick={handleFileUpload}
-                  title="Attach file"
+                  title="Attach file (10 pts)"
                   disabled={isUploading}
                 >
                   {isUploading ? (
@@ -926,16 +971,24 @@ export function ChatAssistant() {
                       className="md:size-[18px] animate-spin"
                     />
                   ) : (
-                    <IconPaperclip size={16} className="md:size-[18px]" />
+                    <>
+                      <IconPaperclip size={16} className="md:size-[18px]" />
+                      <Badge className="absolute -top-2 -right-2 h-4 min-w-4 p-0 flex items-center justify-center text-[8px] bg-primary text-primary-foreground border-none opacity-0 group-hover:opacity-100 transition-opacity">
+                        10
+                      </Badge>
+                    </>
                   )}
                 </Button>
                 <Button
                   size="icon"
-                  className="h-7 w-7 md:h-8 md:w-8 shadow-md"
+                  className="h-7 w-7 md:h-8 md:w-8 shadow-md relative group"
                   onClick={handleSendMessage}
                   disabled={!input.trim() || isSending}
                 >
                   <IconSend size={15} className="md:size-[16px]" />
+                  <Badge className="absolute -top-2 -right-2 h-4 min-w-4 p-0 flex items-center justify-center text-[8px] bg-primary text-primary-foreground border-none opacity-0 group-hover:opacity-100 transition-opacity">
+                    5
+                  </Badge>
                 </Button>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { analyzeDocument, generateWithFallback } from "@/lib/gemini";
 import arcjet, { slidingWindow } from "@/lib/arcjet";
+import { checkBalance, deductPoints, POINT_COSTS } from "@/lib/points";
 
 export async function POST(request: Request) {
   try {
@@ -33,6 +34,23 @@ export async function POST(request: Request) {
         );
       }
       return NextResponse.json({ message: "Request blocked" }, { status: 403 });
+    }
+
+    // Check if user has enough points
+    const hasEnoughPoints = await checkBalance(
+      session.user.id,
+      POINT_COSTS.AI_QUIZ_GENERATION,
+    );
+
+    if (!hasEnoughPoints) {
+      return NextResponse.json(
+        {
+          error: "Insufficient points",
+          message: `You need ${POINT_COSTS.AI_QUIZ_GENERATION} points to generate a quiz. Earn more points by uploading materials, posting, or logging in daily!`,
+          required: POINT_COSTS.AI_QUIZ_GENERATION,
+        },
+        { status: 402 },
+      );
     }
 
     const body = await request.json();
@@ -141,6 +159,14 @@ export async function POST(request: Request) {
         timeLimit: quizJson.questions.length * 60, // 1 minute per question as default
       },
     });
+
+    // 6. Deduct points for quiz generation
+    await deductPoints(
+      session.user.id,
+      POINT_COSTS.AI_QUIZ_GENERATION,
+      "AI_QUIZ_GENERATION",
+      `Generated ${difficulty} quiz: ${newQuiz.title}`,
+    );
 
     return NextResponse.json(newQuiz);
   } catch (error) {

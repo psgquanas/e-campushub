@@ -80,6 +80,9 @@ export function NotificationBell() {
       const postId = notification.postId || notification.comment?.postId;
       router.push(`/dashboard/feed/${postId}`);
       setOpen(false);
+    } else if (notification.title.includes("Welcome Bonus")) {
+      router.push("/dashboard/ai-study-hub/chat-assistant");
+      setOpen(false);
     }
   };
 

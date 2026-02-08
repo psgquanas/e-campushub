@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { PointAction } from "@/lib/generated/prisma/client";
+import { createNotification } from "./notifications";
 
 // Point values for different actions
 export const POINT_VALUES = {
@@ -15,6 +16,10 @@ export const POINT_VALUES = {
   STREAK_BONUS: 5,
   ADMIN_AWARD: 0,
   PENALTY: 0,
+  AI_CHAT_MESSAGE: -5,
+  AI_QUIZ_GENERATION: -20,
+  AI_DOCUMENT_UPLOAD: -10,
+  WELCOME_BONUS: 100,
 } as const;
 
 export async function awardPoints({
@@ -65,6 +70,10 @@ function getDefaultDescription(action: PointAction, points: number): string {
     STREAK_BONUS: "Login streak bonus",
     ADMIN_AWARD: `Awarded ${points} points by admin`,
     PENALTY: `Deducted ${Math.abs(points)} points`,
+    AI_CHAT_MESSAGE: "Used AI Study Hub Chat",
+    AI_QUIZ_GENERATION: "Generated a practice quiz",
+    AI_DOCUMENT_UPLOAD: "Uploaded document for analysis",
+    WELCOME_BONUS: "One-time welcome bonus",
   };
 
   return descriptions[action];
@@ -183,5 +192,42 @@ export async function checkAndAwardDailyLogin(userId: string) {
   } finally {
     // Always remove from active set
     activeLoginAwards.delete(userId);
+  }
+}
+
+export async function checkAndAwardWelcomeBonus(userId: string) {
+  try {
+    // Check if user already has a welcome bonus history record
+    const existingBonus = await prisma.pointHistory.findFirst({
+      where: {
+        userId,
+        action: "WELCOME_BONUS",
+      },
+    });
+
+    if (existingBonus) return;
+
+    // Award bonus
+    await awardPoints({
+      userId,
+      action: "WELCOME_BONUS",
+      points: POINT_VALUES.WELCOME_BONUS,
+      description:
+        "Welcome to E-Campus! Here's 100 points to get you started with our AI features.",
+    });
+
+    // Create notification
+    await createNotification({
+      userId,
+      type: "SYSTEM",
+      title: "Welcome Bonus! 🎉",
+      message:
+        "You've been rewarded with 100 points! Use them to chat with our AI Study Assistant or generate practice quizzes.",
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to award welcome bonus:", error);
+    return false;
   }
 }

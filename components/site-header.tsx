@@ -17,7 +17,7 @@ export async function SiteHeader() {
   const programme = programmeId
     ? await prisma.programme.findUnique({
         where: { id: programmeId },
-        select: { name: true }, // or select other fields you need
+        select: { name: true },
       })
     : null;
 
